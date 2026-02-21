@@ -232,8 +232,7 @@ FastRebTab:AddSwitch("🔄 Auto Rebirth Farm", function(bool)
 
             while isRunning and leaderstats.Strength.Value < rebirthCost do
                 if getPing() < 350 then
-                    local reps = player.MembershipType == Enum.MembershipType.Premium and 8 or 14
-                    for i = 1, reps do 
+                    for i = 1, 15 do 
                         muscleEvent:FireServer("rep") 
                     end
                     task.wait(0.01)
@@ -454,7 +453,7 @@ task.spawn(function()
 end)
 
 local strengthOnly = false
-local repsPerTick = 23
+local repsPerTick = 24
 
 local function getPing()
     local stats = game:GetService("Stats")
@@ -472,14 +471,12 @@ local function unequipAllPets()
     end
 end
 
--- BURASI GÜNCELLENDİ: Bulduğu isme sahip tüm petleri takar
 local function equipUniquePet(name)
     if player:FindFirstChild("petsFolder") and player.petsFolder:FindFirstChild("Unique") then
         for _, pet in pairs(player.petsFolder.Unique:GetChildren()) do
             if pet.Name == name then
                 rEvents.equipPetEvent:FireServer("equipPet", pet)
-                -- Hepsini takabilmesi için çok kısa bir bekleme (Remote limitine takılmamak için)
-                task.wait(0.01) 
+                task.wait(0.05)
             end
         end
     end
@@ -510,7 +507,7 @@ FarmingTab:AddLabel("💪 Fast Strength").TextSize = 21
 FarmingTab:AddTextBox("Rep Speed", function(value)
     local num = tonumber(value)
     if num and num > 0 then repsPerTick = math.floor(num) end
-end, {placeholder = "Hız (Örn: 26)"})
+end, {placeholder = "Rep Speed"})
 
 FarmingTab:AddSwitch("💢 Auto Strength Farm", function(bool)
     strengthOnly = bool
@@ -518,7 +515,7 @@ FarmingTab:AddSwitch("💢 Auto Strength Farm", function(bool)
     task.spawn(function()
         unequipAllPets()
         task.wait(0.2)
-        equipUniquePet("Swift Samurai") -- Kaç tane varsa hepsini takar
+        equipUniquePet("Swift Samurai")
         while strengthOnly do
             if getPing() < 350 then
                 for i = 1, repsPerTick do muscleEvent:FireServer("rep") end
@@ -530,7 +527,7 @@ FarmingTab:AddSwitch("💢 Auto Strength Farm", function(bool)
     end)
 end)
 
-FarmingTab:AddLabel("Machine Teleports").TextSize = 21
+FarmingTab:AddLabel("🏋️‍♂️ Machine Teleports").TextSize = 21
 
 FarmingTab:AddButton("🏋️‍♂️ Jungle Lift", function()
     local character = player.Character
