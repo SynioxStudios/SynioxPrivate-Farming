@@ -1,12 +1,36 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SynioxStudios/ByYusufGui-Syniox/refs/heads/main/SynioxGui.txt", true))()
-local window = library:AddWindow("Syniox Paid | Muscle Legends", {
-    main_color = Color3.fromRGB(160, 0, 0),
-    min_size = Vector2.new(450, 450),
+local displayName = game.Players.LocalPlayer.DisplayName
+
+local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. displayName, {
+    title_bar = {
+        Color3.fromRGB(160, 0, 0), 
+        Color3.fromRGB(40, 0, 0),  
+        Color3.fromRGB(0, 0, 0)    
+    }, 
+    title_bar_transparency = 0.1, 
+    background = {
+        Color3.fromRGB(0, 0, 0), 
+        Color3.fromRGB(10, 10, 10), 
+        Color3.fromRGB(20, 20, 20)
+    }, 
+    background_transparency = 0.1, 
+    main_color = Color3.fromRGB(160, 0, 0), 
+    min_size = Vector2.new(450, 450), 
     can_resize = true 
 })
 
+local player = game.Players.LocalPlayer
+local muscleEvent = player:WaitForChild("muscleEvent")
+local rEvents = game:GetService("ReplicatedStorage"):WaitForChild("rEvents")
+
+local function getPing()
+    local stats = game:GetService("Stats")
+    local pingStat = stats:FindFirstChild("PerformanceStats") and stats.PerformanceStats:FindFirstChild("Ping")
+    return pingStat and pingStat:GetValue() or 0
+end
+
 local function formatNumber(num)
-    if num >= 1e15 then return string.format("%.2fQa", num/1e15) end
+    if num >= 1e15 then return string.format("%.2fQ", num/1e15) end
     if num >= 1e12 then return string.format("%.2fT", num/1e12) end
     if num >= 1e9 then return string.format("%.2fB", num/1e9) end
     if num >= 1e6 then return string.format("%.2fM", num/1e6) end
@@ -14,149 +38,203 @@ local function formatNumber(num)
     return string.format("%.0f", num)
 end
 
-local RebirthTab = window:AddTab("Rebirth Farm")
-local rb_Running = false
-local rb_Start = tick()
-local rb_Player = game.Players.LocalPlayer
-local rb_Initial = rb_Player.leaderstats.Rebirths.Value
+local function unequipAllPets()
+    if player:FindFirstChild("petsFolder") then
+        for _, folder in pairs(player.petsFolder:GetChildren()) do
+            for _, pet in pairs(folder:GetChildren()) do
+                rEvents.equipPetEvent:FireServer("unequipPet", pet)
+            end
+        end
+    end
+end
 
-RebirthTab:AddLabel("Rebirth Stats").TextSize = 20
-local rb_TimeLabel = RebirthTab:AddLabel("Time: 0d 0h 0m 0s")
-local rb_GainLabel = RebirthTab:AddLabel("Gained: 0")
+local function equipUniquePet(name)
+    if player:FindFirstChild("petsFolder") and player.petsFolder:FindFirstChild("Unique") then
+        for _, pet in pairs(player.petsFolder.Unique:GetChildren()) do
+            if pet.Name == name then
+                rEvents.equipPetEvent:FireServer("equipPet", pet)
+                task.wait(0.01) 
+            end
+        end
+    end
+end
+
+local function findMachine(machineName)
+    local machine = workspace:FindFirstChild("machinesFolder") and workspace.machinesFolder:FindFirstChild(machineName)
+    if not machine then
+        for _, f in pairs(workspace:GetChildren()) do
+            if f:IsA("Folder") and f.Name:find("machines") then
+                machine = f:FindFirstChild(machineName)
+                if machine then break end
+            end
+        end
+    end
+    return machine
+end
+
+local function pressE()
+    local vim = game:GetService("VirtualInputManager")
+    vim:SendKeyEvent(true, "E", false, game)
+    task.wait(0.05)
+    vim:SendKeyEvent(false, "E", false, game)
+end
+
+local tabRebirth = window:AddTab("Rebirth Farm")
+local initialRebirths = player.leaderstats.Rebirths.Value
+local startTime = tick()
+local lastRebirthTime = tick()
+local lastRebirthValue = initialRebirths
+
+tabRebirth:AddLabel("Rebirth Session Stats").TextSize = 22
+local timeLabel = tabRebirth:AddLabel("Time: 0d 0h 0m 0s")
+local rebStatsLabel = tabRebirth:AddLabel("Rebirths: 0 | Gained: 0")
+local paceLabel = tabRebirth:AddLabel("Pace: 0 / H | 0 / D")
+
+player.leaderstats.Rebirths:GetPropertyChangedSignal("Value"):Connect(function()
+    local now = tick()
+    local gained = player.leaderstats.Rebirths.Value - lastRebirthValue
+    if gained > 0 then
+        local avgTime = (now - lastRebirthTime) / gained
+        paceLabel.Text = string.format("Pace: %s/H | %s/D", formatNumber(3600/avgTime), formatNumber(86400/avgTime))
+        lastRebirthTime = now
+        lastRebirthValue = player.leaderstats.Rebirths.Value
+    end
+end)
 
 task.spawn(function()
     while true do
-        if rb_Running then
-            local sec = tick() - rb_Start
-            rb_TimeLabel.Text = string.format("Time: %dd %dh %dm %ds", math.floor(sec/86400), math.floor((sec%86400)/3600), math.floor((sec%3600)/60), math.floor(sec%60))
-            rb_GainLabel.Text = "Gained: " .. (rb_Player.leaderstats.Rebirths.Value - rb_Initial)
-        end
+        local elapsed = tick() - startTime
+        local d = math.floor(elapsed / 86400)
+        local h = math.floor((elapsed % 86400) / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = math.floor(elapsed % 60)
+        timeLabel.Text = string.format("Time: %dd %dh %dm %ds", d, h, m, s)
+        rebStatsLabel.Text = string.format("Rebirths: %s | Gained: %s", formatNumber(player.leaderstats.Rebirths.Value), formatNumber(player.leaderstats.Rebirths.Value - initialRebirths))
         task.wait(1)
     end
 end)
 
-RebirthTab:AddSwitch("Auto Rebirth Farm", function(state)
-    rb_Running = state
-    if state then
-        rb_Start = tick()
-        task.spawn(function()
-            while rb_Running do
-                local myRebs = rb_Player.leaderstats.Rebirths.Value
-                local cost = 10000 + (5000 * myRebs)
-                if rb_Player:FindFirstChild("ultimatesFolder") and rb_Player.ultimatesFolder:FindFirstChild("Golden Rebirth") then
-                    cost = math.floor(cost * (1 - (rb_Player.ultimatesFolder["Golden Rebirth"].Value * 0.1)))
-                end
-                if rb_Player:FindFirstChild("petsFolder") then
-                    for _,f in pairs(rb_Player.petsFolder:GetChildren()) do for _,p in pairs(f:GetChildren()) do game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("unequipPet", p) end end
-                end
-                task.wait(0.1)
-                for _,p in pairs(rb_Player.petsFolder.Unique:GetChildren()) do if p.Name == "Swift Samurai" then game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("equipPet", p) end end
-                while rb_Running and rb_Player.leaderstats.Strength.Value < cost do
-                    for i = 1, 12 do rb_Player.muscleEvent:FireServer("rep") end
-                    task.wait(0.01)
-                end
-                if not rb_Running then break end
-                if rb_Player:FindFirstChild("petsFolder") then
-                    for _,f in pairs(rb_Player.petsFolder:GetChildren()) do for _,p in pairs(f:GetChildren()) do game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("unequipPet", p) end end
-                end
-                task.wait(0.1)
-                for _,p in pairs(rb_Player.petsFolder.Unique:GetChildren()) do if p.Name == "Tribal Overlord" then game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("equipPet", p) end end
-                rb_Player.Character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
-                task.wait(0.5)
-                local retry = 0
-                repeat 
-                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game) task.wait(0.05) game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
-                    task.wait(0.3) retry = retry + 1 
-                until rb_Player.Character.Humanoid.Sit or retry > 10 or not rb_Running
-                game:GetService("ReplicatedStorage").rEvents.rebirthRemote:InvokeServer("rebirthRequest")
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
-RebirthTab:AddButton("Jungle Lift", function()
-    rb_Player.Character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
-    task.wait(0.5)
-    local retry = 0
-    repeat 
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game) task.wait(0.05) game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
-        task.wait(0.25) retry = retry + 1 
-    until rb_Player.Character.Humanoid.Sit or retry > 10
-end)
-
-RebirthTab:AddButton("Jungle Squat", function()
-    rb_Player.Character.HumanoidRootPart.CFrame = CFrame.new(-8377.55, 48.71, 2864.90)
-    task.wait(0.5)
-    local retry = 0
-    repeat 
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game) task.wait(0.05) game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
-        task.wait(0.25) retry = retry + 1 
-    until rb_Player.Character.Humanoid.Sit or retry > 10
-end)
-
-local StrengthTab = window:AddTab("Strength Farm")
-local str_Running = false
-local str_Start = tick()
-local str_Player = game.Players.LocalPlayer
-local str_Initial = str_Player.leaderstats.Strength.Value
-local str_Reps = 23
-
-StrengthTab:AddLabel("Strength Stats").TextSize = 20
-local str_TimeLabel = StrengthTab:AddLabel("Time: 0d 0h 0m 0s")
-local str_PaceLabel = StrengthTab:AddLabel("Pace: 0 / Hour")
-local str_GainLabel = StrengthTab:AddLabel("Gained: 0")
-
-task.spawn(function()
-    while true do
-        if str_Running then
-            local sec = tick() - str_Start
-            str_TimeLabel.Text = string.format("Time: %dd %dh %dm %ds", math.floor(sec/86400), math.floor((sec%86400)/3600), math.floor((sec%3600)/60), math.floor(sec%60))
-            local g = str_Player.leaderstats.Strength.Value - str_Initial
-            str_GainLabel.Text = "Gained: " .. formatNumber(g)
-            if g > 0 and sec > 0 then str_PaceLabel.Text = "Pace: " .. formatNumber((g/sec)*3600) .. "/H" end
-        end
-        task.wait(1)
-    end
-end)
-
-StrengthTab:AddTextBox("Rep Speed", function(v) if tonumber(v) then str_Reps = tonumber(v) end end, {placeholder = "23"})
-
-StrengthTab:AddSwitch("Auto Strength Farm", function(state)
-    str_Running = state
-    if state then
-        str_Start = tick()
-        str_Initial = str_Player.leaderstats.Strength.Value
-        task.spawn(function()
-            if str_Player:FindFirstChild("petsFolder") then
-                for _,f in pairs(str_Player.petsFolder:GetChildren()) do for _,p in pairs(f:GetChildren()) do game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("unequipPet", p) end end
-            end
+local isRunning = false
+tabRebirth:AddSwitch("🔄 Auto Rebirth (Ping Protected)", function(bool)
+    isRunning = bool
+    if not bool then return end
+    task.spawn(function()
+        while isRunning do
+            if getPing() > 350 then task.wait(1) continue end
+            local currentReb = player.leaderstats.Rebirths.Value
+            local rebirthCost = 10000 + (5000 * currentReb)
+            unequipAllPets()
             task.wait(0.1)
-            for _,p in pairs(str_Player.petsFolder.Unique:GetChildren()) do if p.Name == "Swift Samurai" then game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("equipPet", p) end end
-            while str_Running do
-                for i = 1, str_Reps do str_Player.muscleEvent:FireServer("rep") end
-                task.wait(0.01)
+            equipUniquePet("Swift Samurai")
+            while isRunning and player.leaderstats.Strength.Value < rebirthCost do
+                if getPing() < 350 then
+                    for i = 1, 12 do muscleEvent:FireServer("rep") end
+                    task.wait(0.01)
+                else
+                    task.wait(1)
+                end
             end
-        end)
+            if not isRunning then break end
+            unequipAllPets()
+            task.wait(0.1)
+            equipUniquePet("Tribal Overlord")
+            local machine = findMachine("Jungle Bar Lift")
+            if machine and machine:FindFirstChild("interactSeat") then
+                player.Character.HumanoidRootPart.CFrame = machine.interactSeat.CFrame * CFrame.new(0, 3, 0)
+                local retry = 0
+                repeat task.wait(0.2) pressE() retry = retry + 1 until (player.Character and player.Character.Humanoid.Sit) or retry > 20 or not isRunning
+            end
+            local before = player.leaderstats.Rebirths.Value
+            repeat rEvents.rebirthRemote:InvokeServer("rebirthRequest") task.wait(0.5) until player.leaderstats.Rebirths.Value > before or not isRunning
+        end
+    end)
+end)
+
+tabRebirth:AddButton("🏋️‍♂️ Jungle Lift", function()
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
+    task.wait(0.5)
+    local machine = findMachine("Jungle Bar Lift")
+    if machine and machine:FindFirstChild("interactSeat") then
+        local retry = 0
+        repeat task.wait(0.2) pressE() retry = retry + 1 until (player.Character and player.Character.Humanoid.Sit) or retry > 10
     end
 end)
 
-StrengthTab:AddButton("Jungle Lift", function()
-    str_Player.Character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
+tabRebirth:AddButton("🦵 Jungle Squat", function()
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(-8377, 48, 2864)
     task.wait(0.5)
-    local retry = 0
-    repeat 
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game) task.wait(0.05) game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
-        task.wait(0.25) retry = retry + 1 
-    until str_Player.Character.Humanoid.Sit or retry > 10
+    local machine = findMachine("Jungle Squat Rack") or findMachine("Squat Rack")
+    if machine and machine:FindFirstChild("interactSeat") then
+        local retry = 0
+        repeat task.wait(0.2) pressE() retry = retry + 1 until (player.Character and player.Character.Humanoid.Sit) or retry > 10
+    end
 end)
 
-StrengthTab:AddButton("Jungle Squat", function()
-    str_Player.Character.HumanoidRootPart.CFrame = CFrame.new(-8377.55, 48.71, 2864.90)
+local tabStrength = window:AddTab("Strength Farm")
+local strengthOnly = false
+local repSpeed = 0.01
+local initialStrength = player.leaderstats.Strength.Value
+local strengthHistory = {}
+
+tabStrength:AddLabel("Strength Session Stats").TextSize = 22
+local sStatsLabel = tabStrength:AddLabel("Strength: 0 | Gained: 0")
+local sPaceLabel = tabStrength:AddLabel("Pace: 0 / H | 0 / D")
+
+task.spawn(function()
+    while true do
+        local curStr = player.leaderstats.Strength.Value
+        local now = tick()
+        sStatsLabel.Text = string.format("Strength: %s | Gained: %s", formatNumber(curStr), formatNumber(curStr - initialStrength))
+        table.insert(strengthHistory, {time = now, value = curStr})
+        while #strengthHistory > 0 and now - strengthHistory[1].time > 10 do table.remove(strengthHistory, 1) end
+        if #strengthHistory >= 2 then
+            local perSec = (strengthHistory[#strengthHistory].value - strengthHistory[1].value) / 10
+            sPaceLabel.Text = string.format("Pace: %s/H | %s/D", formatNumber(perSec * 3600), formatNumber(perSec * 86400))
+        end
+        task.wait(1)
+    end
+end)
+
+tabStrength:AddLabel("Recommended Speed: 23").TextSize = 18
+tabStrength:AddTextBox("Rep Speed / Thread", function(val)
+    local n = tonumber(val)
+    if n then repSpeed = n end
+end)
+
+tabStrength:AddSwitch("💢 Auto Strength", function(bool)
+    strengthOnly = bool
+    if not bool then return end
+    task.spawn(function()
+        unequipAllPets()
+        task.wait(0.1)
+        equipUniquePet("Swift Samurai")
+        while strengthOnly do
+            if getPing() < 350 then
+                for i = 1, 23 do muscleEvent:FireServer("rep") end
+                task.wait(repSpeed)
+            else
+                task.wait(1)
+            end
+        end
+    end)
+end)
+
+tabStrength:AddButton("🏋️‍♂️ Jungle Lift", function()
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
     task.wait(0.5)
-    local retry = 0
-    repeat 
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game) task.wait(0.05) game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
-        task.wait(0.25) retry = retry + 1 
-    until str_Player.Character.Humanoid.Sit or retry > 10
+    local machine = findMachine("Jungle Bar Lift")
+    if machine and machine:FindFirstChild("interactSeat") then
+        local retry = 0
+        repeat task.wait(0.2) pressE() retry = retry + 1 until (player.Character and player.Character.Humanoid.Sit) or retry > 10
+    end
+end)
+
+tabStrength:AddButton("🦵 Jungle Squat", function()
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(-8377, 48, 2864)
+    task.wait(0.5)
+    local machine = findMachine("Jungle Squat Rack") or findMachine("Squat Rack")
+    if machine and machine:FindFirstChild("interactSeat") then
+        local retry = 0
+        repeat task.wait(0.2) pressE() retry = retry + 1 until (player.Character and player.Character.Humanoid.Sit) or retry > 10
+    end
 end)
