@@ -14,38 +14,31 @@ local muscleEvent = player:WaitForChild("muscleEvent")
 local leaderstats = player:WaitForChild("leaderstats")
 local rebirthsStat = leaderstats:WaitForChild("Rebirths")
 
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/lkjhg969/ffdsf/refs/heads/main/hgfhj", true))()
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SynioxStudios/ByYusufGui-Syniox/refs/heads/main/SynioxGui.txt", true))()
+local displayName = game.Players.LocalPlayer.DisplayName
 
-local window = library:AddWindow("Silence | Farming", {
-    main_color = Color3.fromRGB(138, 0, 0),
-    min_size = Vector2.new(600, 600),
-    can_resize = false
+local window = library:AddWindow("Syniox Public | Muscle Legends || HELLO - ".. displayName, {
+    title_bar = {
+        Color3.fromRGB(160, 0, 0), 
+        Color3.fromRGB(40, 0, 0),  
+        Color3.fromRGB(0, 0, 0)    
+    }, 
+    title_bar_transparency = 0.1, 
+    background = {
+        Color3.fromRGB(0, 0, 0), 
+        Color3.fromRGB(10, 10, 10), 
+        Color3.fromRGB(20, 20, 20)
+    }, 
+    background_transparency = 0.1, 
+    main_color = Color3.fromRGB(160, 0, 0), 
+    min_size = Vector2.new(450, 450), 
+    can_resize = true 
 })
-
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local blockedFrames = {
-    "strengthFrame",
-    "durabilityFrame",
-    "agilityFrame",
-}
-
-for _, name in ipairs(blockedFrames) do
-    local frame = replicatedStorage:FindFirstChild(name)
-    if frame and frame:IsA("GuiObject") then
-        frame.Visible = false
-    end
-end
-
-replicatedStorage.ChildAdded:Connect(function(child)
-    if table.find(blockedFrames, child.Name) and child:IsA("GuiObject") then
-        child.Visible = false
-    end
-end)
 
 local FastRebTab = window:AddTab("Fast Rebirth")
 
 local function formatNumber(num)
-    if num >= 1e15 then return string.format("%.2fQ", num/1e15) end
+    if num >= 1e15 then return string.format("%.2fQA", num/1e15) end
     if num >= 1e12 then return string.format("%.2fT", num/1e12) end
     if num >= 1e9 then return string.format("%.2fB", num/1e9) end
     if num >= 1e6 then return string.format("%.2fM", num/1e6) end
@@ -164,268 +157,59 @@ local function calculatePaceOnRebirth()
     end
 end
 
-
-
-
 rebirthsStat:GetPropertyChangedSignal("Value"):Connect(function()
     calculatePaceOnRebirth()
     updateRebirthsLabel()
 end)
 
-local function managePets(petName)
-    for _, folder in pairs(player.petsFolder:GetChildren()) do
-        if folder:IsA("Folder") then
-            for _, pet in pairs(folder:GetChildren()) do
-                replicatedStorage.rEvents.equipPetEvent:FireServer("unequipPet", pet)
-            end
-        end
-    end
-    task.wait(0.1)
-    
-    for _, pet in pairs(player.petsFolder.Unique:GetChildren()) do
-        if pet.Name == petName then
-            replicatedStorage.rEvents.equipPetEvent:FireServer("equipPet", pet)
-        end
-    end
+local isRunning = false
+
+local function getPing()
+    local stats = game:GetService("Stats")
+    local pingStat = stats:FindFirstChild("PerformanceStats") and stats.PerformanceStats:FindFirstChild("Ping")
+    return pingStat and pingStat:GetValue() or 0
 end
 
-local function doRebirth()
-    local rebirths = rebirthsStat.Value
-    local strengthTarget = 5000 + (rebirths * 2550)
-    
-    while isRunning and player.leaderstats.Strength.Value < strengthTarget do
-        local reps = player.MembershipType == Enum.MembershipType.Premium and 8 or 14
-        for _ = 1, reps do
-            muscleEvent:FireServer("rep")
+FastRebTab:AddLabel("🔄 Auto Rebirth Farm").TextSize = 21
+
+local function rebirthLoop()
+    while isRunning do
+        local currentReb = rebirthsStat.Value
+        local strengthTarget = 5000 + (currentReb * 2550)
+        
+        managePets("Swift Samurai")
+        
+        while isRunning and player.leaderstats.Strength.Value < strengthTarget do
+            if getPing() < 350 then
+                local reps = player.MembershipType == Enum.MembershipType.Premium and 8 or 14
+                for i = 1, reps do 
+                    muscleEvent:FireServer("rep")
+                end
+                task.wait(0.01)
+            else
+                task.wait(1)
+            end
         end
-        task.wait(0.02)
-    end
-    
-    if isRunning and player.leaderstats.Strength.Value >= strengthTarget then
+
+        if not isRunning then break end
+        
         managePets("Tribal Overlord")
         task.wait(0.25)
         
         local before = rebirthsStat.Value
         repeat
-            replicatedStorage.rEvents.rebirthRemote:InvokeServer("rebirthRequest")
-            task.wait(0.05)
+            ReplicatedStorage.rEvents.rebirthRemote:InvokeServer("rebirthRequest")
+            task.wait(0.5)
         until rebirthsStat.Value > before or not isRunning
     end
 end
 
-local function fastRebirthLoop()
-    while isRunning do
-        managePets("Swift Samurai")
-        doRebirth()
-        task.wait(0.5)
-    end
-end
-
-FastRebTab:AddLabel("")
-
-local RebirthLabel = FastRebTab:AddLabel("Rebirthing:")
-RebirthLabel.TextSize = 20
-
-FastRebTab:AddSwitch("Fast Rebirth", function(state)
+FastRebTab:AddSwitch("🔄 Auto Rebirth", function(state)
     isRunning = state
-    
     if state then
-        startTime = tick()
-        task.spawn(fastRebirthLoop)
-    else
-        totalElapsed = totalElapsed + (tick() - startTime)
-        updateUI(true)
+        task.spawn(rebirthLoop)
     end
 end)
-
-rebirthsStat:GetPropertyChangedSignal("Value"):Connect(function()
-    if isRunning then
-        calculatePace()
-    end
-    updateRebirthsLabel() 
-end)
-
-task.spawn(function()
-    while true do
-        updateUI(false)
-        task.wait(0.1)
-    end
-end)
-
-
-local running = false
-local thread = nil
-
-local sizeSwitch = FastRebTab:AddSwitch("Set Size 1", function(bool)
-    running = bool
-    if running then
-        thread = coroutine.create(function()
-            while running do
-                game:GetService("ReplicatedStorage").rEvents.changeSpeedSizeRemote:InvokeServer("changeSize", 1)
-                wait(0.01)
-            end
-        end)
-        coroutine.resume(thread)
-    end
-end)
-
-FastRebTab:AddButton("Anti Lag", function()
-    local player = game.Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-    local lighting = game:GetService("Lighting")
-
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            gui:Destroy()
-        end
-    end
-
-    local function darkenSky()
-        for _, v in pairs(lighting:GetChildren()) do
-            if v:IsA("Sky") then
-                v:Destroy()
-            end
-        end
-
-        local darkSky = Instance.new("Sky")
-        darkSky.Name = "DarkSky"
-        darkSky.SkyboxBk = "rbxassetid://0"
-        darkSky.SkyboxDn = "rbxassetid://0"
-        darkSky.SkyboxFt = "rbxassetid://0"
-        darkSky.SkyboxLf = "rbxassetid://0"
-        darkSky.SkyboxRt = "rbxassetid://0"
-        darkSky.SkyboxUp = "rbxassetid://0"
-        darkSky.Parent = lighting
-
-        lighting.Brightness = 0
-        lighting.ClockTime = 0
-        lighting.TimeOfDay = "00:00:00"
-        lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-        lighting.Ambient = Color3.new(0, 0, 0)
-        lighting.FogColor = Color3.new(0, 0, 0)
-        lighting.FogEnd = 100
-
-        task.spawn(function()
-            while true do
-                wait(5)
-                if not lighting:FindFirstChild("DarkSky") then
-                    darkSky:Clone().Parent = lighting
-                end
-                lighting.Brightness = 0
-                lighting.ClockTime = 0
-                lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-                lighting.Ambient = Color3.new(0, 0, 0)
-                lighting.FogColor = Color3.new(0, 0, 0)
-                lighting.FogEnd = 100
-            end
-        end)
-    end
-
-    local function removeParticleEffects()
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") then
-                obj:Destroy()
-            end
-        end
-    end
-
-    local function removeLightSources()
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-                obj:Destroy()
-            end
-        end
-    end
-
-    removeParticleEffects()
-    removeLightSources()
-    darkenSky()
-end)
-
-FastRebTab:AddLabel("")
-
-local miscLabel = FastRebTab:AddLabel("Misc:")
-miscLabel.TextSize = 20
-
-local lockRunning = false
-local lockThread = nil
-
-local lockSwitch = FastRebTab:AddSwitch("Lock Position", function(state)
-    lockRunning = state
-    if lockRunning then
-        local player = game.Players.LocalPlayer
-        local char = player.Character or player.CharacterAdded:Wait()
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local lockPosition = hrp.Position
-
-        lockThread = coroutine.create(function()
-            while lockRunning do
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-                hrp.CFrame = CFrame.new(lockPosition)
-                wait(0.05) 
-            end
-        end)
-
-        coroutine.resume(lockThread)
-    end
-end)
-
-local function activateShake()
-    local tool = player.Character:FindFirstChild("Tropical Shake") or player.Backpack:FindFirstChild("Tropical Shake")
-    if tool then
-        muscleEvent:FireServer("tropicalShake", tool)
-    end
-end
-
-local running = false
-
-task.spawn(function()
-    while true do
-        if running then
-            activateShake()
-            task.wait(450)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
-local autoshakeSwitch = FastRebTab:AddSwitch("Auto Shake", function(state)
-    running = state
-    if state then
-        activateShake()
-    end
-end)
-autoshakeSwitch:Set(false)
-
-local spinwheelSwitch = FastRebTab:AddSwitch("Spin Fortune Wheel", function(bool)
-    _G.AutoSpinWheel = bool
-    
-    if bool then
-        spawn(function()
-            while _G.AutoSpinWheel and wait(1) do
-                game:GetService("ReplicatedStorage").rEvents.openFortuneWheelRemote:InvokeServer("openFortuneWheel", game:GetService("ReplicatedStorage").fortuneWheelChances["Fortune Wheel"])
-            end
-        end)
-    end
-end)
-
-FastRebTab:AddButton("Jungle Lift",function()
-    local player = game.Players.LocalPlayer
-    local char = player.Character or Player.CharacterAdded:wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(-8642.396484375, 6.7980651855, 2086.1030273)
-    task.wait(0.2)
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(0.05)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end)
-
-
-
-
-
 
 local FarmingTab = window:AddTab("Fast Farm")
 
@@ -578,10 +362,8 @@ task.spawn(function()
     end
 end)
 
-FarmingTab:AddLabel("")
-FarmingTab:AddLabel("Fast Farm (Recommended Speed: 20)").TextSize = 20
-
-local repsPerTick = 1
+local runStrengthFarm = false
+local repsPerTick = 23
 
 local function getPing()
     local stats = game:GetService("Stats")
@@ -589,247 +371,36 @@ local function getPing()
     return pingStat and pingStat:GetValue() or 0
 end
 
+FarmingTab:AddLabel("💪 Fast Strength").TextSize = 21
+
 FarmingTab:AddTextBox("Rep Speed", function(value)
     local num = tonumber(value)
     if num and num > 0 then
         repsPerTick = math.floor(num)
     end
 end, {
-    placeholder = "1",
+    placeholder = "Hız girin (Örn: 26)",
 })
 
-local function fastRepLoop()
-    while runFastRep do
-        local startTick = tick()
-        while tick() - startTick < 0.75 and runFastRep do
-            for i = 1, repsPerTick do
+local function strengthLoop()
+    unequipAllPets()
+    task.wait(0.1)
+    equipUniquePet("Swift Samurai")
+    while runStrengthFarm do
+        if getPing() < 350 then
+            for i = 1, repsPerTick do 
                 muscleEvent:FireServer("rep")
             end
-            task.wait(0.02)
-        end
-        while runFastRep and getPing() >= 350 do
-            task.wait(1)
-        end
-    end
-end
-
-FarmingTab:AddSwitch("Fast Rep", function(state)
-    if state and not runFastRep then
-        runFastRep = true
-        task.spawn(fastRepLoop)
-    elseif not state and runFastRep then
-        runFastRep = false
-    end
-end)
-
-
-
-
-FastRebTab:AddLabel("")
-
-FarmingTab:AddLabel("Misc:").TextSize = 20
-
-local function unequipPets()
-    for _, folder in pairs(Player.petsFolder:GetChildren()) do
-        if folder:IsA("Folder") then
-            for _, pet in pairs(folder:GetChildren()) do
-                ReplicatedStorage.rEvents.equipPetEvent:FireServer("unequipPet", pet)
-            end
-        end
-    end
-    task.wait(0.1)
-end
-
-local function equipPetsByName(name)
-    unequipPets()
-    task.wait(0.01)
-    for _, pet in pairs(Player.petsFolder.Unique:GetChildren()) do
-        if pet.Name == name then
-            ReplicatedStorage.rEvents.equipPetEvent:FireServer("equipPet", pet)
-        end
-    end
-end
-
-local function activateProteinEgg()
-    local tool = Player.Character:FindFirstChild("Protein Egg") or Player.Backpack:FindFirstChild("Protein Egg")
-    if tool then
-        muscleEvent:FireServer("proteinEgg", tool)
-    end
-end
-
-local running = false
-
-task.spawn(function()
-    while true do
-        if running then
-            activateProteinEgg()
-            task.wait(1800)
+            task.wait(0.01)
         else
             task.wait(1)
         end
     end
-end)
-
-local switch = FarmingTab:AddSwitch("Auto Egg", function(state)
-    running = state
-    if state then
-        activateProteinEgg()
-    end
-end)
-switch:Set(false)
-
-local function activateShake()
-    local tool = Player.Character:FindFirstChild("Tropical Shake") or Player.Backpack:FindFirstChild("Tropical Shake")
-    if tool then
-        muscleEvent:FireServer("tropicalShake", tool)
-    end
 end
 
-local running = false
-
-task.spawn(function()
-    while true do
-        if running then
-            activateShake()
-            task.wait(900)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
-local switch = FarmingTab:AddSwitch("Auto Shake", function(state)
-    running = state
+FarmingTab:AddSwitch("💢 Auto Strength Farm", function(state)
+    runStrengthFarm = state
     if state then
-        activateShake()
+        task.spawn(strengthLoop)
     end
 end)
-switch:Set(false)
-
-local spinwheelSwitch = FarmingTab:AddSwitch("Spin Fortune Wheel", function(bool)
-    _G.AutoSpinWheel = bool
-    
-    if bool then
-        spawn(function()
-            while _G.AutoSpinWheel and wait(1) do
-                game:GetService("ReplicatedStorage").rEvents.openFortuneWheelRemote:InvokeServer("openFortuneWheel", game:GetService("ReplicatedStorage").fortuneWheelChances["Fortune Wheel"])
-            end
-        end)
-    end
-end)
-
-FarmingTab:AddButton("Jungle Squat",function()
-    local player = game.Players.LocalPlayer
-    local char = player.Character or Player.CharacterAdded:wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(-8371.43359375, 6.79806327, 2858.88525390)
-    task.wait(0.2)
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(0.05)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end)
-
-FarmingTab:AddButton("Anti Lag", function()
-    local player = game.Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-    local lighting = game:GetService("Lighting")
-
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            gui:Destroy()
-        end
-    end
-
-    local function darkenSky()
-        for _, v in pairs(lighting:GetChildren()) do
-            if v:IsA("Sky") then
-                v:Destroy()
-            end
-        end
-
-        local darkSky = Instance.new("Sky")
-        darkSky.Name = "DarkSky"
-        darkSky.SkyboxBk = "rbxassetid://0"
-        darkSky.SkyboxDn = "rbxassetid://0"
-        darkSky.SkyboxFt = "rbxassetid://0"
-        darkSky.SkyboxLf = "rbxassetid://0"
-        darkSky.SkyboxRt = "rbxassetid://0"
-        darkSky.SkyboxUp = "rbxassetid://0"
-        darkSky.Parent = lighting
-
-        lighting.Brightness = 0
-        lighting.ClockTime = 0
-        lighting.TimeOfDay = "00:00:00"
-        lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-        lighting.Ambient = Color3.new(0, 0, 0)
-        lighting.FogColor = Color3.new(0, 0, 0)
-        lighting.FogEnd = 100
-
-        task.spawn(function()
-            while true do
-                wait(5)
-                if not lighting:FindFirstChild("DarkSky") then
-                    darkSky:Clone().Parent = lighting
-                end
-                lighting.Brightness = 0
-                lighting.ClockTime = 0
-                lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-                lighting.Ambient = Color3.new(0, 0, 0)
-                lighting.FogColor = Color3.new(0, 0, 0)
-                lighting.FogEnd = 100
-            end
-        end)
-    end
-
-    local function removeParticleEffects()
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") then
-                obj:Destroy()
-            end
-        end
-    end
-
-    local function removeLightSources()
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-                obj:Destroy()
-            end
-        end
-    end
-
-    removeParticleEffects()
-    removeLightSources()
-    darkenSky()
-end)
-
-FarmingTab:AddButton("Equip Swift Samurai", function()
-    unequipPets()
-    equipPetsByName("Swift Samurai")
-end)
-
-local infoTab = window:AddTab("Info")
-infoTab:Show()
-infoTab:AddLabel("Made by Henne ♥️").TextSize = 20
-infoTab:AddLabel("discord.gg/silencev1").TextSize = 20
-infoTab:AddButton("Copy Invite", function()
-    local link = "https://discord.gg/9eFf93Kg8D"
-    if setclipboard then
-        setclipboard(link)
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Link Copied!";
-            Text = "You can continue to Discord now.";
-            Duration = 3;
-        })
-    else
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Error!";
-            Text = "Not Supported.";
-            Duration = 3;
-        })
-    end
-end)
-infoTab:AddLabel("")
-local wLabel = infoTab:AddLabel("VERSION//2.0.0")
-wLabel.TextSize = 40
-wLabel.Font = Enum.Font.Arcade
-
