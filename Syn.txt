@@ -1,18 +1,19 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local muscleEvent = player:WaitForChild("muscleEvent")
+local leaderstats = player:WaitForChild("leaderstats")
+local rebirthsStat = leaderstats:WaitForChild("Rebirths")
+local rEvents = ReplicatedStorage:WaitForChild("rEvents")
+
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SynioxStudios/ByYusufGui-Syniox/refs/heads/main/SynioxGui.txt", true))()
-local displayName = game.Players.LocalPlayer.DisplayName
+local displayName = player.DisplayName
 
 local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. displayName, {
-    title_bar = {
-        Color3.fromRGB(160, 0, 0), 
-        Color3.fromRGB(40, 0, 0),  
-        Color3.fromRGB(0, 0, 0)    
-    }, 
+    title_bar = {Color3.fromRGB(160, 0, 0), Color3.fromRGB(40, 0, 0), Color3.fromRGB(0, 0, 0)}, 
     title_bar_transparency = 0.1, 
-    background = {
-        Color3.fromRGB(0, 0, 0), 
-        Color3.fromRGB(10, 10, 10), 
-        Color3.fromRGB(20, 20, 20)
-    }, 
+    background = {Color3.fromRGB(0, 0, 0), Color3.fromRGB(10, 10, 10), Color3.fromRGB(20, 20, 20)}, 
     background_transparency = 0.1, 
     main_color = Color3.fromRGB(160, 0, 0), 
     min_size = Vector2.new(450, 450), 
@@ -21,24 +22,15 @@ local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. di
 
 local RebTab = window:AddTab("Fast Rebirth")
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local leaderstats = player:WaitForChild("leaderstats")
-local rebirthsStat = leaderstats:WaitForChild("Rebirths")
-local muscleEvent = player:WaitForChild("muscleEvent")
-local rEvents = game:GetService("ReplicatedStorage"):WaitForChild("rEvents")
-
+local isRunning = false
+local startTime = 0
+local totalElapsed = 0
+local initialRebirths = rebirthsStat.Value
 local lastRebirthTime = tick()
 local lastRebirthValue = rebirthsStat.Value
-local initialRebirths = rebirthsStat.Value
 local rebirthCount = 0
-local startTime = tick()
-local totalElapsed = 0
-local isRunning = false
 
-local paceHistoryHour = {}
-local paceHistoryDay = {}
-local paceHistoryWeek = {}
+local paceHistoryHour, paceHistoryDay, paceHistoryWeek = {}, {}, {}
 local maxHistoryLength = 20
 
 local function formatNumber(num)
@@ -85,21 +77,16 @@ local function findMachine(machineName)
 end
 
 local function pressE()
-    local vim = game:GetService("VirtualInputManager")
-    vim:SendKeyEvent(true, "E", false, game)
+    VirtualInputManager:SendKeyEvent(true, "E", false, game)
     task.wait(0.05)
-    vim:SendKeyEvent(false, "E", false, game)
+    VirtualInputManager:SendKeyEvent(false, "E", false, game)
 end
 
 local timeLabel = RebTab:AddLabel("0d 0h 0m 0s - Paused")
-local paceLabel = RebTab:AddLabel("Pace: 0 / Hour | 0 / Day")
-local averagePaceLabel = RebTab:AddLabel("Avg Pace: 0 / Hour | 0 / Day")
-local rebirthsStatsLabel = RebTab:AddLabel("Rebirths: " .. formatNumber(rebirthsStat.Value) .. " | Gained: 0")
-
-local function updateRebirthsLabel()
-    local gained = rebirthsStat.Value - initialRebirths
-    rebirthsStatsLabel.Text = string.format("Rebirths: %s | Gained: %s", formatNumber(rebirthsStat.Value), formatNumber(gained))
-end
+timeLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+local paceLabel = RebTab:AddLabel("Pace: 0 / Hour | 0 / Day | 0 / Week")
+local averagePaceLabel = RebTab:AddLabel("Average Pace: 0 / Hour | 0 / Day | 0 / Week")
+local rebirthsStatsLabel = RebTab:AddLabel("Rebirths: "..formatNumber(rebirthsStat.Value).." | Gained: 0")
 
 local function updateUI()
     local currentTime = tick()
@@ -108,56 +95,53 @@ local function updateUI()
     local hours = math.floor((elapsed % 86400) / 3600)
     local minutes = math.floor((elapsed % 3600) / 60)
     local seconds = math.floor(elapsed % 60)
+    
     timeLabel.Text = string.format("%dd %dh %dm %ds - %s", days, hours, minutes, seconds, isRunning and "Rebirthing" or "Paused")
+    timeLabel.TextColor3 = isRunning and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
 end
 
 local function calculatePaceOnRebirth()
     rebirthCount = rebirthCount + 1
     if rebirthCount < 2 then
-        lastRebirthTime = tick()
-        lastRebirthValue = rebirthsStat.Value
+        lastRebirthTime, lastRebirthValue = tick(), rebirthsStat.Value
         return
     end
     local now = tick()
     local gained = rebirthsStat.Value - lastRebirthValue
     if gained > 0 then
-        local avgTimePerRebirth = (now - lastRebirthTime) / gained
-        local paceHour = 3600 / avgTimePerRebirth
-        local paceDay = 86400 / avgTimePerRebirth
-        table.insert(paceHistoryHour, paceHour)
-        table.insert(paceHistoryDay, paceDay)
+        local avgTime = (now - lastRebirthTime) / gained
+        local pH, pD, pW = 3600/avgTime, 86400/avgTime, 604800/avgTime
+        paceLabel.Text = string.format("Pace: %s/H | %s/D | %s/W", formatNumber(pH), formatNumber(pD), formatNumber(pW))
+        table.insert(paceHistoryHour, pH)
+        table.insert(paceHistoryDay, pD)
+        table.insert(paceHistoryWeek, pW)
         if #paceHistoryHour > maxHistoryLength then
-            table.remove(paceHistoryHour, 1)
-            table.remove(paceHistoryDay, 1)
+            table.remove(paceHistoryHour, 1) table.remove(paceHistoryDay, 1) table.remove(paceHistoryWeek, 1)
         end
-        local function average(tbl)
-            local sum = 0
-            for _, v in ipairs(tbl) do sum = sum + v end
-            return #tbl > 0 and (sum / #tbl) or 0
+        local function avg(tbl)
+            local s = 0 for _, v in ipairs(tbl) do s = s + v end
+            return #tbl > 0 and (s / #tbl) or 0
         end
-        averagePaceLabel.Text = string.format("Avg Pace: %s / Hour | %s / Day", formatNumber(average(paceHistoryHour)), formatNumber(average(paceHistoryDay)))
-        paceLabel.Text = string.format("Pace: %s / Hour | %s / Day", formatNumber(paceHour), formatNumber(paceDay))
-        lastRebirthTime = now
-        lastRebirthValue = rebirthsStat.Value
+        averagePaceLabel.Text = string.format("Avg Pace: %s/H | %s/D | %s/W", formatNumber(avg(paceHistoryHour)), formatNumber(avg(paceHistoryDay)), formatNumber(avg(paceHistoryWeek)))
+        lastRebirthTime, lastRebirthValue = now, rebirthsStat.Value
     end
 end
 
-RebTab:AddSwitch("Auto Rebirth", function(state)
+RebTab:AddSwitch("🔄 Auto Rebirth Farm", function(state)
     isRunning = state
     if state then
         startTime = tick()
         task.spawn(function()
             while isRunning do
-                local currentReb = player.leaderstats.Rebirths.Value
-                local rebirthCost = 10000 + (5000 * currentReb)
+                local cReb = rebirthsStat.Value
+                local cost = 10000 + (5000 * cReb)
                 if player.ultimatesFolder:FindFirstChild("Golden Rebirth") then
-                    local gReb = player.ultimatesFolder["Golden Rebirth"].Value
-                    rebirthCost = math.floor(rebirthCost * (1 - (gReb * 0.1)))
+                    cost = math.floor(cost * (1 - (player.ultimatesFolder["Golden Rebirth"].Value * 0.1)))
                 end
                 unequipAllPets()
                 task.wait(0.1)
                 equipUniquePet("Swift Samurai")
-                while isRunning and player.leaderstats.Strength.Value < rebirthCost do
+                while isRunning and player.leaderstats.Strength.Value < cost do
                     for i = 1, 12 do muscleEvent:FireServer("rep") end
                     task.wait(0.01)
                 end
@@ -168,18 +152,10 @@ RebTab:AddSwitch("Auto Rebirth", function(state)
                 local machine = findMachine("Jungle Bar Lift")
                 if machine and machine:FindFirstChild("interactSeat") then
                     player.Character.HumanoidRootPart.CFrame = machine.interactSeat.CFrame * CFrame.new(0, 3, 0)
-                    local retryCount = 0
-                    repeat
-                        task.wait(0.2)
-                        pressE()
-                        retryCount = retryCount + 1
-                    until (player.Character and player.Character.Humanoid.Sit) or retryCount > 20 or not isRunning
+                    local r = 0 repeat task.wait(0.2) pressE() r = r + 1 until (player.Character and player.Character.Humanoid.Sit) or r > 20 or not isRunning
                 end
-                local bReb = player.leaderstats.Rebirths.Value
-                repeat
-                    rEvents.rebirthRemote:InvokeServer("rebirthRequest")
-                    task.wait(0.5)
-                until player.leaderstats.Rebirths.Value > bReb or not isRunning
+                local b = rebirthsStat.Value
+                repeat rEvents.rebirthRemote:InvokeServer("rebirthRequest") task.wait(0.5) until rebirthsStat.Value > b or not isRunning
             end
         end)
     else
@@ -187,31 +163,11 @@ RebTab:AddSwitch("Auto Rebirth", function(state)
     end
 end)
 
-RebTab:AddButton("🏋️‍♂️ Jungle Lift", function()
-    local character = player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
-        task.wait(0.5)
-        local machine = findMachine("Jungle Bar Lift")
-        if machine and machine:FindFirstChild("interactSeat") then
-            local retryCount = 0
-            repeat
-                task.wait(0.2)
-                pressE()
-                retryCount = retryCount + 1
-            until (player.Character and player.Character.Humanoid.Sit) or retryCount > 10
-        end
-    end
-end)
-
 rebirthsStat:GetPropertyChangedSignal("Value"):Connect(function()
     calculatePaceOnRebirth()
-    updateRebirthsLabel()
+    rebirthsStatsLabel.Text = string.format("Rebirths: %s | Gained: %s", formatNumber(rebirthsStat.Value), formatNumber(rebirthsStat.Value - initialRebirths))
 end)
 
 task.spawn(function()
-    while true do
-        updateUI()
-        task.wait(1)
-    end
+    while true do updateUI() task.wait(1) end
 end)
