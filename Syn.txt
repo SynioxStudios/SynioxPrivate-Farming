@@ -127,6 +127,9 @@ local function calculatePaceOnRebirth()
     end
 end
 
+RebTab:AddLabel("")
+RebTab:AddLabel("⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")
+
 RebTab:AddSwitch("🔄 Auto Rebirth Farm", function(state)
     isRunning = state
     if state then
@@ -170,4 +173,175 @@ end)
 
 task.spawn(function()
     while true do updateUI() task.wait(1) end
+end)
+
+RebTab:AddButton("🏋️‍♂️ Jungle Lift", function()
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(-8666, 34, 2070)
+        task.wait(0.5)
+        local machine = findMachine("Jungle Bar Lift")
+        if machine and machine:FindFirstChild("interactSeat") then
+            local retryCount = 0
+            repeat
+                task.wait(0.2)
+                pressE()
+                retryCount = retryCount + 1
+            until (player.Character and player.Character.Humanoid.Sit) or retryCount > 10
+        end
+    end
+end)
+
+RebTab:AddLabel("👾 Performance").TextSize = 21
+
+RebTab:AddButton("🏴 Full FPS Boost", function()
+    local lighting = game:GetService("Lighting")
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("PointLight") or obj:IsA("SpotLight") then
+            obj:Destroy()
+        end
+    end
+    lighting.Brightness = 0
+    lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    for _, v in pairs(lighting:GetChildren()) do if v:IsA("Sky") then v:Destroy() end end
+end)
+
+RebTab:AddSwitch("👁️‍🗨️ Hide All Frames", function(state)
+    for _, obj in pairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+        if obj.Name:match("Frame$") then obj.Visible = not state end
+    end
+end)
+
+RebTab:AddSwitch("🎰 Auto Fortune Wheel", function(Value)
+    _G.autoFortuneWheelActive = Value
+    if Value then
+        local function openFortuneWheel()
+            while _G.autoFortuneWheelActive do
+                local args = {
+                    [1] = "openFortuneWheel",
+                    [2] = game:GetService("ReplicatedStorage"):WaitForChild("fortuneWheelChances"):WaitForChild("Fortune Wheel")
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("openFortuneWheelRemote"):InvokeServer(unpack(args))
+                wait(0)
+            end
+        end
+        coroutine.wrap(openFortuneWheel)()
+    else
+        _G.autoFortuneWheelActive = false
+    end
+end)
+
+local StrTab = window:AddTab("Fast Strength")
+
+local strengthStat = leaderstats:WaitForChild("Strength")
+local durabilityStat = player:WaitForChild("Durability")
+local runFastRep = false
+local repsPerTick = 1 
+local initialStrength = strengthStat.Value
+local initialDurability = durabilityStat.Value
+local strengthHistory = {}
+local calculationInterval = 10
+
+local function formatNumber(number)
+    local isNegative = number < 0
+    number = math.abs(number)
+    if number >= 1e15 then return (isNegative and "-" or "") .. string.format("%.2fQa", number / 1e15)
+    elseif number >= 1e12 then return (isNegative and "-" or "") .. string.format("%.2fT", number / 1e12)
+    elseif number >= 1e9 then return (isNegative and "-" or "") .. string.format("%.2fB", number / 1e9)
+    elseif number >= 1e6 then return (isNegative and "-" or "") .. string.format("%.2fM", number / 1e6)
+    elseif number >= 1e3 then return (isNegative and "-" or "") .. string.format("%.2fK", number / 1e3)
+    else return (isNegative and "-" or "") .. string.format("%.0f", number) end
+end
+
+local function getPing()
+    local stats = game:GetService("Stats")
+    local pingStat = stats:FindFirstChild("PerformanceStats") and stats.PerformanceStats:FindFirstChild("Ping")
+    return pingStat and pingStat:GetValue() or 0
+end
+
+StrTab:AddLabel("Session Stats")
+local strengthLabel = StrTab:AddLabel("Strength: 0 | Gained: 0")
+local sPaceLabel = StrTab:AddLabel("Strength Pace: 0/H | 0/D")
+local durabilityLabel = StrTab:AddLabel("Durability: 0 | Gained: 0")
+
+StrTab:AddLabel("Settings")
+
+StrTab:AddTextBox("Rep Speed", function(value)
+    local num = tonumber(value)
+    if num and num > 0 then
+        repsPerTick = math.floor(num)
+    end
+end, {
+    placeholder = "1",
+})
+
+local function fastRepLoop()
+    while runFastRep do
+        local startTick = tick()
+        while tick() - startTick < 0.75 and runFastRep do
+            if getPing() < 350 then
+                for i = 1, repsPerTick do
+                    muscleEvent:FireServer("rep")
+                end
+            end
+            task.wait(0.02)
+        end
+        while runFastRep and getPing() >= 350 do
+            task.wait(1)
+        end
+    end
+end
+
+StrTab:AddSwitch("💢 Auto Strength Farm", function(state)
+    runFastRep = state
+    if state then
+        unequipAllPets()
+        task.wait(0.1)
+        equipUniquePet("Swift Samurai")
+        task.spawn(fastRepLoop)
+    end
+end)
+
+task.spawn(function()
+    local lastCalcTime = tick()
+    while true do
+        local currentStrength = strengthStat.Value
+        local currentDurability = durabilityStat.Value
+        strengthLabel.Text = "Strength: " .. formatNumber(currentStrength) .. " | Gained: " .. formatNumber(currentStrength - initialStrength)
+        durabilityLabel.Text = "Durability: " .. formatNumber(currentDurability) .. " | Gained: " .. formatNumber(currentDurability - initialDurability)
+
+        if runFastRep then
+            local currentTime = tick()
+            table.insert(strengthHistory, {time = currentTime, value = currentStrength})
+            while #strengthHistory > 0 and currentTime - strengthHistory[1].time > calculationInterval do
+                table.remove(strengthHistory, 1)
+            end
+            if currentTime - lastCalcTime >= calculationInterval and #strengthHistory >= 2 then
+                lastCalcTime = currentTime
+                local delta = strengthHistory[#strengthHistory].value - strengthHistory[1].value
+                local perSec = delta / calculationInterval
+                sPaceLabel.Text = string.format("Strength Pace: %s/Hour | %s/Day", formatNumber(perSec * 3600), formatNumber(perSec * 86400))
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+StrTab:AddLabel("Machines")
+
+StrTab:AddButton("🦵 Jungle Squat", function()
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(-8377.55, 48.71, 2864.90)
+        task.wait(0.5)
+        local machine = findMachine("Jungle Squat Rack") or findMachine("Squat Rack")
+        if machine and machine:FindFirstChild("interactSeat") then
+            local retry = 0
+            repeat
+                task.wait(0.2)
+                pressE()
+                retry = retry + 1
+            until (player.Character and player.Character.Humanoid.Sit) or retry > 10
+        end
+    end
 end)
