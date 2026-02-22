@@ -713,11 +713,10 @@ Main:AddButton("⛔ Stop Jungle Farm", function()
 end)
 
 Main:AddLabel("🏋️‍♂️ Lift Farm")
-local VIM = game:GetService("VirtualInputManager")
-local activeLift = false
-local selectedLiftCF = nil
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Player = game.Players.LocalPlayer
 
-local Lifts = {
+local LiftData = {
     ["🌴 Jungle Lift"] = CFrame.new(-8652.85, 45.22, 2088.99),
     ["👑 Muscle King Lift"] = CFrame.new(-8774.03, 52.15, -5664.10),
     ["🌟 Legends Lift"] = CFrame.new(4532.02, 1025.80, -4002.15),
@@ -725,11 +724,11 @@ local Lifts = {
     ["❄️ Frost Lift"] = CFrame.new(-2917.62, 42.60, -211.29)
 }
 
-local liftNames = {}
-for k, v in pairs(Lifts) do table.insert(liftNames, k) end
+local selectedLiftCF = nil
+local activeLift = false
 
-Main:AddDropdown("Select Lift Location", liftNames, function(s)
-    selectedLiftCF = Lifts[s]
+Main:AddDropdown("Select Lift Location", {"🌴 Jungle Lift", "👑 Muscle King Lift", "🌟 Legends Lift", "🔮 Mythical Lift", "❄️ Frost Lift"}, function(s)
+    selectedLiftCF = LiftData[s]
 end)
 
 Main:AddSwitch("🏋️ Auto Farm Lift", function(bool)
@@ -737,17 +736,20 @@ Main:AddSwitch("🏋️ Auto Farm Lift", function(bool)
     if bool and selectedLiftCF then
         task.spawn(function()
             while activeLift do
-                local char = game.Players.LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local root = char.HumanoidRootPart
-                    if (root.Position - selectedLiftCF.p).Magnitude > 5 then
-                        root.CFrame = selectedLiftCF
+                local char = Player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if (hrp.Position - selectedLiftCF.Position).Magnitude > 5 then
+                        hrp.CFrame = selectedLiftCF
                         task.wait(0.3)
-                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(0.05)
-                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                     end
-                    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
+                    local event = Player:FindFirstChild("muscleEvent")
+                    if event then
+                        event:FireServer("rep")
+                    end
                 end
                 task.wait(0.01)
             end
