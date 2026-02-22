@@ -128,7 +128,7 @@ local function calculatePaceOnRebirth()
 end
 
 RebTab:AddLabel("")
-RebTab:AddLabel("⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")
+RebTab:AddLabel("-------------------------")
 
 RebTab:AddSwitch("🔄 Auto Rebirth Farm", function(state)
     isRunning = state
@@ -192,8 +192,6 @@ RebTab:AddButton("🏋️‍♂️ Jungle Lift", function()
     end
 end)
 
-RebTab:AddLabel("👾 Performance").TextSize = 21
-
 RebTab:AddButton("🏴 Full FPS Boost", function()
     local lighting = game:GetService("Lighting")
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -240,29 +238,19 @@ local repsPerTick = 1
 local initialStrength = strengthStat.Value
 local initialDurability = durabilityStat.Value
 local strengthHistory = {}
+local durabilityHistory = {}
 local calculationInterval = 10
-
-local function formatNumber(number)
-    local isNegative = number < 0
-    number = math.abs(number)
-    if number >= 1e15 then return (isNegative and "-" or "") .. string.format("%.2fQa", number / 1e15)
-    elseif number >= 1e12 then return (isNegative and "-" or "") .. string.format("%.2fT", number / 1e12)
-    elseif number >= 1e9 then return (isNegative and "-" or "") .. string.format("%.2fB", number / 1e9)
-    elseif number >= 1e6 then return (isNegative and "-" or "") .. string.format("%.2fM", number / 1e6)
-    elseif number >= 1e3 then return (isNegative and "-" or "") .. string.format("%.2fK", number / 1e3)
-    else return (isNegative and "-" or "") .. string.format("%.0f", number) end
-end
-
-local function getPing()
-    local stats = game:GetService("Stats")
-    local pingStat = stats:FindFirstChild("PerformanceStats") and stats.PerformanceStats:FindFirstChild("Ping")
-    return pingStat and pingStat:GetValue() or 0
-end
+local strStartTime = tick()
+local strTotalElapsed = 0
 
 StrTab:AddLabel("Session Stats")
+local strTimeLabel = StrTab:AddLabel("0d 0h 0m 0s - Paused")
+strTimeLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+
 local strengthLabel = StrTab:AddLabel("Strength: 0 | Gained: 0")
 local sPaceLabel = StrTab:AddLabel("Strength Pace: 0/H | 0/D")
 local durabilityLabel = StrTab:AddLabel("Durability: 0 | Gained: 0")
+local dPaceLabel = StrTab:AddLabel("Durability Pace: 0/H | 0/D")
 
 StrTab:AddLabel("Settings")
 
@@ -274,6 +262,24 @@ StrTab:AddTextBox("Rep Speed", function(value)
 end, {
     placeholder = "1",
 })
+
+local function updateStrUI()
+    local currentTime = tick()
+    local elapsed = runFastRep and (currentTime - strStartTime + strTotalElapsed) or strTotalElapsed
+    local days = math.floor(elapsed / 86400)
+    local hours = math.floor((elapsed % 86400) / 3600)
+    local minutes = math.floor((elapsed % 3600) / 60)
+    local seconds = math.floor(elapsed % 60)
+    
+    strTimeLabel.Text = string.format("%dd %dh %dm %ds - %s", days, hours, minutes, seconds, runFastRep and "Farming" or "Paused")
+    
+    local currentColor = runFastRep and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    strTimeLabel.TextColor3 = currentColor
+    strengthLabel.TextColor3 = currentColor
+    durabilityLabel.TextColor3 = currentColor
+    sPaceLabel.TextColor3 = currentColor
+    dPaceLabel.TextColor3 = currentColor
+end
 
 local function fastRepLoop()
     while runFastRep do
@@ -292,56 +298,58 @@ local function fastRepLoop()
     end
 end
 
-StrTab:AddSwitch("💢 Auto Strength Farm", function(state)
+StrTab:AddSwitch("Auto Strength Farm", function(state)
     runFastRep = state
     if state then
+        strStartTime = tick()
         unequipAllPets()
         task.wait(0.1)
         equipUniquePet("Swift Samurai")
         task.spawn(fastRepLoop)
+    else
+        strTotalElapsed = strTotalElapsed + (tick() - strStartTime)
     end
 end)
 
 task.spawn(function()
     local lastCalcTime = tick()
     while true do
+        updateStrUI()
+        
         local currentStrength = strengthStat.Value
         local currentDurability = durabilityStat.Value
+        
         strengthLabel.Text = "Strength: " .. formatNumber(currentStrength) .. " | Gained: " .. formatNumber(currentStrength - initialStrength)
         durabilityLabel.Text = "Durability: " .. formatNumber(currentDurability) .. " | Gained: " .. formatNumber(currentDurability - initialDurability)
 
         if runFastRep then
             local currentTime = tick()
             table.insert(strengthHistory, {time = currentTime, value = currentStrength})
+            table.insert(durabilityHistory, {time = currentTime, value = currentDurability})
+            
             while #strengthHistory > 0 and currentTime - strengthHistory[1].time > calculationInterval do
                 table.remove(strengthHistory, 1)
             end
-            if currentTime - lastCalcTime >= calculationInterval and #strengthHistory >= 2 then
+            while #durabilityHistory > 0 and currentTime - durabilityHistory[1].time > calculationInterval do
+                table.remove(durabilityHistory, 1)
+            end
+
+            if currentTime - lastCalcTime >= calculationInterval then
                 lastCalcTime = currentTime
-                local delta = strengthHistory[#strengthHistory].value - strengthHistory[1].value
-                local perSec = delta / calculationInterval
-                sPaceLabel.Text = string.format("Strength Pace: %s/Hour | %s/Day", formatNumber(perSec * 3600), formatNumber(perSec * 86400))
+                
+                if #strengthHistory >= 2 then
+                    local sDelta = strengthHistory[#strengthHistory].value - strengthHistory[1].value
+                    local sPerSec = sDelta / calculationInterval
+                    sPaceLabel.Text = string.format("Strength Pace: %s/Hour | %s/Day", formatNumber(sPerSec * 3600), formatNumber(sPerSec * 86400))
+                end
+                
+                if #durabilityHistory >= 2 then
+                    local dDelta = durabilityHistory[#durabilityHistory].value - durabilityHistory[1].value
+                    local dPerSec = dDelta / calculationInterval
+                    dPaceLabel.Text = string.format("Durability Pace: %s/Hour | %s/Day", formatNumber(dPerSec * 3600), formatNumber(dPerSec * 86400))
+                end
             end
         end
         task.wait(0.1)
-    end
-end)
-
-StrTab:AddLabel("Machines")
-
-StrTab:AddButton("🦵 Jungle Squat", function()
-    local character = player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        character.HumanoidRootPart.CFrame = CFrame.new(-8377.55, 48.71, 2864.90)
-        task.wait(0.5)
-        local machine = findMachine("Jungle Squat Rack") or findMachine("Squat Rack")
-        if machine and machine:FindFirstChild("interactSeat") then
-            local retry = 0
-            repeat
-                task.wait(0.2)
-                pressE()
-                retry = retry + 1
-            until (player.Character and player.Character.Humanoid.Sit) or retry > 10
-        end
     end
 end)
