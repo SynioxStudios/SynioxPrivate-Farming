@@ -511,3 +511,372 @@ local sizeSwitch = StrTab:AddSwitch("Auto Size 2", function(bool)
         end)
     end
 end, "Size 2")
+
+local Main window:AddTab("Main")
+
+_G.repToggle = false
+Main:AddSwitch("💪 Fast Auto Farm (Equip Any tool)", function(state)
+    _G.repToggle = state
+    task.spawn(function()
+        while _G.repToggle do
+            local event = game:GetService("Players").LocalPlayer:FindFirstChild("muscleEvent")
+            if event then
+                event:FireServer("rep")
+            end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+local folder1 = Main:AddFolder(" 💪 Tools V2")
+
+local function manageTool(toolName)
+    task.spawn(function()
+        while _G[toolName.."On"] do
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            
+            if character then
+                local tool = character:FindFirstChild(toolName) or player.Backpack:FindFirstChild(toolName)
+                
+                if tool then
+                    if tool.Parent ~= character then
+                        tool.Parent = character
+                    end
+                    
+                    local event = player:FindFirstChild("muscleEvent")
+                    if event then
+                        event:FireServer("rep")
+                    else
+                        tool:Activate()
+                    end
+                end
+            end
+            task.wait(0.01)
+        end
+
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if character then
+            local tool = character:FindFirstChild(toolName)
+            if tool then
+                tool.Parent = player.Backpack
+            end
+        end
+    end)
+end
+
+folder1:AddSwitch("🏋️ Weight", function(bool)
+    _G.WeightOn = bool
+    if bool then manageTool("Weight") end
+end)
+
+folder1:AddSwitch("💪 Pushups", function(bool)
+    _G.PushupsOn = bool
+    if bool then manageTool("Pushups") end
+end)
+
+folder1:AddSwitch("🤸 Handstands", function(bool)
+    _G.HandstandsOn = bool
+    if bool then manageTool("Handstands") end
+end)
+
+folder1:AddSwitch("🧘 Situps", function(bool)
+    _G.SitupsOn = bool
+    if bool then manageTool("Situps") end
+end)
+
+Main:AddLabel("🏃‍♂️ Treadmill Farm")
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+local Locations = {
+    ["🌿 Jungle Treadmill +8 xp"] = Vector3.new(-8131.86, 25.77, 2818.17),
+    ["🔱 Legends Treadmill +7 xp"] = Vector3.new(4365.82, 997.14, -3632.9),
+    ["✨ Mythical Treadmill +6 xp"] = Vector3.new(2661.67, 19.41, 932.09),
+    ["🏠 Spawn Treadmill +5 xp"] = Vector3.new(-230.43, 8.16, -102.18),
+    ["👟 Tiny Treadmill +1 xp"] = Vector3.new(55.64, 5.16, 1947.60)
+}
+
+local locationNames = {}
+for name, _ in pairs(Locations) do
+    table.insert(locationNames, name)
+end
+
+local posLockConnection = nil
+local activeFarm = false
+
+local function stopAll()
+    activeFarm = false
+    if posLockConnection then
+        posLockConnection:Disconnect()
+        posLockConnection = nil
+    end
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+end
+
+local function startFarm(locationName)
+    stopAll()
+    activeFarm = true
+    
+    local targetPos = Locations[locationName]
+    local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    
+    if hrp and targetPos then
+        hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+        task.wait(0.3)
+        local targetCFrame = hrp.CFrame
+        
+        posLockConnection = RunService.Heartbeat:Connect(function()
+            if activeFarm and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                Player.Character.HumanoidRootPart.CFrame = targetCFrame
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+            end
+        end)
+    end
+end
+
+Main:AddDropdown("⚡ Select Treadmill", locationNames, function(selected)
+    startFarm(selected)
+end)
+
+Main:AddButton("⛔ Stop Treadmill Farm", function()
+    stopAll()
+end)
+
+Main:AddLabel("🌴 Jungle Farm")
+
+local VIM = game:GetService("VirtualInputManager")
+local activeJungleFarm = false
+local jungleConnection = nil
+
+local JungleLocations = {
+    ["🌴 Auto Jungle Lift"] = {cf = CFrame.new(-8652.85, 45.22, 2088.99), event = "rep"},
+    ["🏋️ Auto Bench Press"] = {cf = CFrame.new(-8173.23, 83.82, 1907.40), event = "rep"},
+    ["🦵 Auto Squat"] = {cf = CFrame.new(-8377.55, 48.71, 2864.90), event = "rep"},
+    ["💢 Auto Boulder"] = {cf = CFrame.new(-8614.81, 51.90, 2677.37), event = "rep"}
+}
+
+local jungleNames = {}
+for name, _ in pairs(JungleLocations) do
+    table.insert(jungleNames, name)
+end
+
+local function pressEKey()
+    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.05)
+    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function stopJungle()
+    activeJungleFarm = false
+end
+
+local function startJungle(selectedName)
+    activeJungleFarm = false
+    task.wait(0.1)
+    activeJungleFarm = true
+    
+    local data = JungleLocations[selectedName]
+    
+    task.spawn(function()
+        while activeJungleFarm do
+            local player = game.Players.LocalPlayer
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            
+            if root and data then
+                if (root.Position - data.cf.p).Magnitude > 5 then
+                    root.CFrame = data.cf
+                    task.wait(0.3)
+                    pressEKey()
+                end
+                
+                if player:FindFirstChild("muscleEvent") then
+                    player.muscleEvent:FireServer(data.event)
+                end
+            end
+            task.wait(0.01)
+        end
+    end)
+end
+
+Main:AddDropdown("🌴 Select Jungle Gym", jungleNames, function(selected)
+    startJungle(selected)
+end)
+
+Main:AddButton("⛔ Stop Jungle Farm", function()
+    stopJungle()
+end)
+
+Main:AddLabel("🏋️‍♂️ Lift Farm")
+local VIM = game:GetService("VirtualInputManager")
+local activeLift = false
+local selectedLiftCF = nil
+
+local Lifts = {
+    ["🌴 Jungle Lift"] = CFrame.new(-8652.85, 45.22, 2088.99),
+    ["👑 Muscle King Lift"] = CFrame.new(-8774.03, 52.15, -5664.10),
+    ["🌟 Legends Lift"] = CFrame.new(4532.02, 1025.80, -4002.15),
+    ["🔮 Mythical Lift"] = CFrame.new(2486.75, 31.91, 847.89),
+    ["❄️ Frost Lift"] = CFrame.new(-2917.62, 42.60, -211.29)
+}
+
+local liftNames = {}
+for k, v in pairs(Lifts) do table.insert(liftNames, k) end
+
+Main:AddDropdown("Select Lift Location", liftNames, function(s)
+    selectedLiftCF = Lifts[s]
+end)
+
+Main:AddSwitch("🏋️ Auto Farm Lift", function(bool)
+    activeLift = bool
+    if bool and selectedLiftCF then
+        task.spawn(function()
+            while activeLift do
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    if (root.Position - selectedLiftCF.p).Magnitude > 5 then
+                        root.CFrame = selectedLiftCF
+                        task.wait(0.3)
+                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
+                end
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
+
+Main:AddLabel("🏆 BenchPress Farm")
+local activeBench = false
+local selectedBenchCF = nil
+
+local Benches = {
+    ["🌴 Jungle Bench"] = CFrame.new(-8173.23, 83.82, 1907.40),
+    ["👑 Muscle King Bench"] = CFrame.new(-8589.43, 58.00, -6044.57),
+    ["🌟 Legends Bench"] = CFrame.new(4109.20, 1035.67, -3802.88),
+    ["🔮 Mythical Bench"] = CFrame.new(2370.74, 57.09, 1243.37),
+    ["❄️ Frost Bench"] = CFrame.new(-3022.97, 41.31, -197.51)
+}
+
+local benchNames = {}
+for k, v in pairs(Benches) do table.insert(benchNames, k) end
+
+Main:AddDropdown("Select Bench Location", benchNames, function(s)
+    selectedBenchCF = Benches[s]
+end)
+
+Main:AddSwitch("💪 Auto Farm Bench", function(bool)
+    activeBench = bool
+    if bool and selectedBenchCF then
+        task.spawn(function()
+            while activeBench do
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    if (root.Position - selectedBenchCF.p).Magnitude > 5 then
+                        root.CFrame = selectedBenchCF
+                        task.wait(0.3)
+                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
+                end
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
+
+Main:AddLabel("🌕 Squat Farm")
+
+local activeSquat = false
+local selectedSquatCF = nil
+
+local Squats = {
+    ["🌴 Jungle Squat"] = CFrame.new(-8377.55, 48.71, 2864.90),
+    ["👑 Muscle King Squat"] = CFrame.new(-8759.62, 46.50, -6041.16),
+    ["🌟 Legends Squat"] = CFrame.new(4438.74, 1021.38, -4058.46),
+    ["❄️ Frost Squat"] = CFrame.new(-2720.66, 27.85, -590.72)
+}
+
+local squatNames = {}
+for k, v in pairs(Squats) do table.insert(squatNames, k) end
+
+Main:AddDropdown("Select Squat Location", squatNames, function(s)
+    selectedSquatCF = Squats[s]
+end)
+
+Main:AddSwitch("🦵 Auto Farm Squat", function(bool)
+    activeSquat = bool
+    if bool and selectedSquatCF then
+        task.spawn(function()
+            while activeSquat do
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    if (root.Position - selectedSquatCF.p).Magnitude > 5 then
+                        root.CFrame = selectedSquatCF
+                        task.wait(0.3)
+                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
+                end
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
+
+Main:AddLabel("🗿 Boulder Farm")
+
+local activeBoulder = false
+local selectedBoulderCF = nil
+
+local Boulders = {
+    ["🌴 Jungle Boulder"] = CFrame.new(-8614.81, 51.90, 2677.37),
+    ["👑 Muscle King Boulder"] = CFrame.new(-8942.97, 60.71, -5692.74),
+    ["🌟 Legends Boulder"] = CFrame.new(4188.75, 1019.85, -3905.19),
+    ["🔮 Mythical Boulder"] = CFrame.new(2667.31, 58.88, 1202.46)
+}
+
+local boulderNames = {}
+for k, v in pairs(Boulders) do table.insert(boulderNames, k) end
+
+Main:AddDropdown("Select Boulder Location", boulderNames, function(s)
+    selectedBoulderCF = Boulders[s]
+end)
+
+Main:AddSwitch("🗿 Auto Farm Boulder", function(bool)
+    activeBoulder = bool
+    if bool and selectedBoulderCF then
+        task.spawn(function()
+            while activeBoulder do
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    if (root.Position - selectedBoulderCF.p).Magnitude > 5 then
+                        root.CFrame = selectedBoulderCF
+                        task.wait(0.3)
+                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("rep")
+                end
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
