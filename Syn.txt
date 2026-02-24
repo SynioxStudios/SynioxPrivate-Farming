@@ -833,6 +833,19 @@ local function manageToolCombo(toolName)
     end)
 end
 
+function gettool()
+    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+        if v.Name == "Punch" and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+            game.Players.LocalPlayer.Character.Humanoid:EquipTool(v)
+        end
+    end
+    
+    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
+    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
+    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
+    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
+end
+
 toolFolder:AddSwitch("🏋️ Weight + 🥊 Punch", function(bool)
     _G.WeightOn = bool
     if bool then manageToolCombo("Weight") end
@@ -852,19 +865,6 @@ toolFolder:AddSwitch("🧘 Situps + 🥊 Punch", function(bool)
     _G.SitupsOn = bool
     if bool then manageToolCombo("Situps") end
 end)
-
-function gettool()
-    for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-        if v.Name == "Punch" and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            game.Players.LocalPlayer.Character.Humanoid:EquipTool(v)
-        end
-    end
-    
-    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
-    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
-    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
-    game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
-end
 
 toolFolder:AddSwitch("👑 Muscle King Rock 5M", function(Value)
     selectrock = "Muscle King Gym Rock"
@@ -912,22 +912,6 @@ toolFolder:AddSwitch("🌴 Jungle Rock 10M", function(Value)
             end
         end
     end)
-end)
-
-Main:AddSwitch("🥚 Auto Eat Egg (30 Min)", function(state)
-    autoEatEnabled = state
-    if state then
-        task.spawn(function()
-            while autoEatEnabled do
-                local egg = player.Backpack:FindFirstChild("Protein Egg")
-                if egg then
-                    egg.Parent = player.Character
-                    pcall(function() egg:Activate() end)
-                end
-                task.wait(1800)
-            end
-        end)
-    end
 end)
 
 Main:AddSwitch("🥚 Auto Eat Egg (60 Min)", function(state)
