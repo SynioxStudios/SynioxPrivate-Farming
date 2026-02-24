@@ -929,3 +929,132 @@ Main:AddSwitch("🥚 Auto Eat Egg (60 Min)", function(state)
         end)
     end
 end)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local Gift = window:AddTab("Gift")
+
+Gift:AddLabel("Gifting Protein egg:").TextSize = 22
+local proteinEggLabel = Gift:AddLabel("Protein Eggs: 0")
+proteinEggLabel.TextSize = 20
+
+local selectedEggPlayer = nil
+local eggCount = 0
+
+local eggDropdown = Gift:AddDropdown("Player to Gift Eggs", function(selectedDisplayName)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.DisplayName == selectedDisplayName then
+            selectedEggPlayer = plr
+            break
+        end
+    end
+end)
+
+local function refreshEggDropdown()
+    if eggDropdown.Clear then eggDropdown:Clear() end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            eggDropdown:Add(plr.DisplayName)
+        end
+    end
+end
+
+refreshEggDropdown()
+Players.PlayerAdded:Connect(refreshEggDropdown)
+Players.PlayerRemoving:Connect(refreshEggDropdown)
+
+Gift:AddTextBox("Amount of Eggs", function(text)
+    eggCount = tonumber(text) or 0
+end)
+
+Gift:AddButton("Gift Eggs", function()
+    if selectedEggPlayer and eggCount > 0 then
+        for i = 1, eggCount do
+            local egg = (LocalPlayer:FindFirstChild("consumablesFolder") and LocalPlayer.consumablesFolder:FindFirstChild("Protein Egg")) or LocalPlayer.Backpack:FindFirstChild("Protein Egg")
+            if egg then
+                ReplicatedStorage.rEvents.giftRemote:InvokeServer("giftRequest", selectedEggPlayer, egg)
+                task.wait(0.1)
+            else
+                break
+            end
+        end
+    end
+end)
+
+Gift:AddLabel("Gifting Tropical Shakes:").TextSize = 22
+local tropicalShakeLabel = Gift:AddLabel("Tropical Shakes: 0")
+tropicalShakeLabel.TextSize = 18
+
+local selectedShakePlayer = nil
+local shakeCount = 0
+
+local shakeDropdown = Gift:AddDropdown("Player to Gift Tropical Shakes", function(selectedDisplayName)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.DisplayName == selectedDisplayName then
+            selectedShakePlayer = plr
+            break
+        end
+    end
+end)
+
+local function refreshShakeDropdown()
+    if shakeDropdown.Clear then shakeDropdown:Clear() end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            shakeDropdown:Add(plr.DisplayName)
+        end
+    end
+end
+
+refreshShakeDropdown()
+Players.PlayerAdded:Connect(refreshShakeDropdown)
+Players.PlayerRemoving:Connect(refreshShakeDropdown)
+
+Gift:AddTextBox("Tropical Shakes gift", function(text)
+    shakeCount = tonumber(text) or 0
+end)
+
+Gift:AddButton("Gift Tropical Shakes", function()
+    if selectedShakePlayer and shakeCount > 0 then
+        for i = 1, shakeCount do
+            local shake = (LocalPlayer:FindFirstChild("consumablesFolder") and LocalPlayer.consumablesFolder:FindFirstChild("Tropical Shake")) or LocalPlayer.Backpack:FindFirstChild("Tropical Shake")
+            if shake then
+                ReplicatedStorage.rEvents.giftRemote:InvokeServer("giftRequest", selectedShakePlayer, shake)
+                task.wait(0.1)
+            else
+                break
+            end
+        end
+    end
+end)
+
+local function updateItemCount()
+    local pEggCount = 0
+    local tShakeCount = 0
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local folder = LocalPlayer:FindFirstChild("consumablesFolder")
+    
+    local allItems = {}
+    if backpack then for _, v in pairs(backpack:GetChildren()) do table.insert(allItems, v) end end
+    if folder then for _, v in pairs(folder:GetChildren()) do table.insert(allItems, v) end end
+
+    for _, item in ipairs(allItems) do
+        if item.Name == "Protein Egg" then
+            pEggCount = pEggCount + 1
+        elseif item.Name == "Tropical Shake" or item.Name:find("nas") then
+            tShakeCount = tShakeCount + 1
+        end
+    end
+
+    proteinEggLabel.Text = "Protein Eggs: " .. pEggCount
+    tropicalShakeLabel.Text = "Tropical Shakes: " .. tShakeCount
+end
+
+task.spawn(function()
+    while true do
+        updateItemCount()
+        task.wait(0.5)
+    end
+end)
