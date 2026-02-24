@@ -794,7 +794,7 @@ createBoulderFarm("👑 Muscle King Boulder", CFrame.new(-8942.97, 60.71, -5692.
 createBoulderFarm("🌟 Legends Boulder", CFrame.new(4188.75, 1019.85, -3905.19))
 createBoulderFarm("🔮 Mythical Boulder", CFrame.new(2667.31, 58.88, 1202.46))
 
-local toolFolder = AutoFarm:AddFolder(" 💨 OP Tools V2")
+local toolFolder = Main:AddFolder(" 💨 OP Tools V2")
 
 local function manageToolCombo(toolName)
     task.spawn(function()
@@ -867,6 +867,54 @@ Main:AddSwitch("🥚 Auto Eat Egg (30 Min)", function(state)
             end
         end)
     end
+end)
+
+toolFolder:AddSwitch("👑 Muscle King Rock 5M", function(Value)
+    selectrock = "Muscle King Gym Rock"
+    getgenv().autoFarm = Value
+    task.spawn(function()
+        while getgenv().autoFarm do
+            task.wait(0.01)
+            if not getgenv().autoFarm then break end
+            if game:GetService("Players").LocalPlayer.Durability.Value >= 5000000 then
+                for i, v in pairs(game:GetService("Workspace").machinesFolder:GetDescendants()) do
+                    if v.Name == "neededDurability" and v.Value == 5000000 and game.Players.LocalPlayer.Character:FindFirstChild("LeftHand") and game.Players.LocalPlayer.Character:FindFirstChild("RightHand") then
+                        for _ = 1, 3 do
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.RightHand, 0)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.RightHand, 1)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.LeftHand, 0)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.LeftHand, 1)
+                        end
+                        gettool()
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+toolFolder:AddSwitch("🌴 Jungle Rock 10M", function(Value)
+    selectrock = "Ancient Jungle Rock"
+    getgenv().autoFarm = Value
+    task.spawn(function()
+        while getgenv().autoFarm do
+            task.wait(0.01)
+            if not getgenv().autoFarm then break end
+            if game:GetService("Players").LocalPlayer.Durability.Value >= 10000000 then
+                for i, v in pairs(game:GetService("Workspace").machinesFolder:GetDescendants()) do
+                    if v.Name == "neededDurability" and v.Value == 10000000 and game.Players.LocalPlayer.Character:FindFirstChild("LeftHand") and game.Players.LocalPlayer.Character:FindFirstChild("RightHand") then
+                        for _ = 1, 3 do
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.RightHand, 0)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.RightHand, 1)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.LeftHand, 0)
+                            firetouchinterest(v.Parent.Rock, game:GetService("Players").LocalPlayer.Character.LeftHand, 1)
+                        end
+                        gettool()
+                    end
+                end
+            end
+        end
+    end)
 end)
 
 Main:AddSwitch("🥚 Auto Eat Egg (60 Min)", function(state)
