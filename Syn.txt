@@ -794,58 +794,93 @@ createBoulderFarm("👑 Muscle King Boulder", CFrame.new(-8942.97, 60.71, -5692.
 createBoulderFarm("🌟 Legends Boulder", CFrame.new(4188.75, 1019.85, -3905.19))
 createBoulderFarm("🔮 Mythical Boulder", CFrame.new(2667.31, 58.88, 1202.46))
 
-local AuraTab = window:AddTab("Aura Calculator")
+local toolFolder = AutoFarm:AddFolder(" 💨 OP Tools V2")
 
-local function formatNumber(num)
-    if num >= 1e15 then return string.format("%.2fQa", num/1e15) end
-    if num >= 1e12 then return string.format("%.2fT", num/1e12) end
-    if num >= 1e9 then return string.format("%.2fB", num/1e9) end
-    if num >= 1e6 then return string.format("%.2fM", num/1e6) end
-    if num >= 1e3 then return string.format("%.2fK", num/1e3) end
-    return string.format("%.0f", num)
+local function manageToolCombo(toolName)
+    task.spawn(function()
+        while _G[toolName.."On"] do
+            local character = LocalPlayer.Character
+            local hum = character and character:FindFirstChildOfClass("Humanoid")
+            
+            if character and hum then
+                local punch = LocalPlayer.Backpack:FindFirstChild("Punch") or character:FindFirstChild("Punch")
+                local tool = LocalPlayer.Backpack:FindFirstChild(toolName) or character:FindFirstChild(toolName)
+
+                if punch then
+                    if punch.Parent ~= character then
+                        hum:EquipTool(punch)
+                    end
+                    if punch:FindFirstChild("attackTime") then 
+                        punch.attackTime.Value = 0 
+                    end
+                    punch:Activate()
+                end
+
+                if tool then
+                    if tool.Parent ~= character then
+                        hum:EquipTool(tool)
+                    end
+                    
+                    local event = LocalPlayer:FindFirstChild("muscleEvent")
+                    if event then 
+                        event:FireServer("rep") 
+                    end
+                    tool:Activate()
+                end
+            end
+            task.wait(0.01)
+        end
+    end)
 end
 
-AuraTab:AddLabel("Aura Glitch Tracker")
-
-local currentRebLabel = AuraTab:AddLabel("Current Rebirth: " .. formatNumber(rebirthsStat.Value))
-local auraStatusLabel = AuraTab:AddLabel("Aura Level Needed: Calculating...")
-local auraXpLabel = AuraTab:AddLabel("Aura XP Needed: Calculating...")
-
-AuraTab:AddLabel("Target Calculator")
-
-local targetRebirth = 18980
-AuraTab:AddTextBox("Target Rebirth", function(val)
-    local n = tonumber(val)
-    if n then targetRebirth = n end
-end, {placeholder = "Örn: 18980"})
-
-AuraTab:AddButton("Calculate Aura Requirement", function()
-    local levelReq = math.floor(targetRebirth / 4745)
-    if levelReq < 1 then levelReq = 1 end
-    local xpReq = levelReq * 1000
-    
-    auraStatusLabel.Text = "Target Level Needed: " .. levelReq
-    auraXpLabel.Text = "Target XP Needed: " .. formatNumber(xpReq)
-    
-    library:Notification("Aura Calculation", "For " .. targetRebirth .. " Rebirths:\nYou need Level " .. levelReq .. " and " .. xpReq .. " XP", "Done")
+toolFolder:AddSwitch("🏋️ Weight + 🥊 Punch", function(bool)
+    _G.WeightOn = bool
+    if bool then manageToolCombo("Weight") end
 end)
 
-task.spawn(function()
-    while true do
-        local currentReb = rebirthsStat.Value
-        currentRebLabel.Text = "Current Rebirth: " .. formatNumber(currentReb)
-        
-        local myLevelReq = math.floor(currentReb / 4745)
-        if myLevelReq < 1 then myLevelReq = 1 end
-        local myXpReq = myLevelReq * 1000
-        
-        auraStatusLabel.Text = "Aura Level Needed: " .. myLevelReq
-        auraXpLabel.Text = "Aura XP Needed: " .. formatNumber(myXpReq)
-        
-        task.wait(2)
+toolFolder:AddSwitch("💪 Pushups + 🥊 Punch", function(bool)
+    _G.PushupsOn = bool
+    if bool then manageToolCombo("Pushups") end
+end)
+
+toolFolder:AddSwitch("🤸 Handstand + 🥊 Punch", function(bool)
+    _G.HandstandOn = bool
+    if bool then manageToolCombo("Handstand") end
+end)
+
+toolFolder:AddSwitch("🧘 Situps + 🥊 Punch", function(bool)
+    _G.SitupsOn = bool
+    if bool then manageToolCombo("Situps") end
+end)
+
+Main:AddSwitch("🥚 Auto Eat Egg (30 Min)", function(state)
+    autoEatEnabled = state
+    if state then
+        task.spawn(function()
+            while autoEatEnabled do
+                local egg = player.Backpack:FindFirstChild("Protein Egg")
+                if egg then
+                    egg.Parent = player.Character
+                    pcall(function() egg:Activate() end)
+                end
+                task.wait(1800)
+            end
+        end)
     end
 end)
 
-AuraTab:AddLabel("--------------------------------")
-AuraTab:AddLabel("Aura glitch icin gereken levela")
-AuraTab:AddLabel("ulasinca agility kasmayi birak.")
+Main:AddSwitch("🥚 Auto Eat Egg (60 Min)", function(state)
+    autoEatEnabled = state
+    if state then
+        task.spawn(function()
+            while autoEatEnabled do
+                local egg = player.Backpack:FindFirstChild("Protein Egg")
+                if egg then
+                    egg.Parent = player.Character
+                    pcall(function() egg:Activate() end)
+                end
+                task.wait(3600)
+            end
+        end)
+    end
+end)
