@@ -1058,3 +1058,88 @@ task.spawn(function()
         task.wait(0.5)
     end
 end)
+
+local AuraTab = window:AddTab("Aura Calculator")
+
+local rockSweetSpots = {
+    [80]   = {lvl = 1, xp = 1750},
+    [280]  = {lvl = 2, xp = 750},
+    [580]  = {lvl = 0, xp = 0},
+    [980]  = {lvl = 1, xp = 1000},
+    [1480] = {lvl = 1, xp = 2250},
+    [2080] = {lvl = 2, xp = 750},
+    [2780] = {lvl = 2, xp = 2500},
+    [3580] = {lvl = 3, xp = 0},
+    [4480] = {lvl = 3, xp = 2250},
+    [5480] = {lvl = 3, xp = 4750}
+}
+
+local raritySettings = {
+    ["Unique Pet"]   = {baseLvl = 2, mult = 0.07156},
+    ["Epic Pet"]     = {baseLvl = 1, mult = 0.06500},
+    ["Advanced Pet"] = {baseLvl = 1, mult = 0.05500},
+    ["Rare Pet"]     = {baseLvl = 1, mult = 0.05000},
+    ["Basic Pet"]    = {baseLvl = 1, mult = 0.04000},
+    ["Unique Aura"]  = {baseLvl = 3, mult = 0.08000} 
+}
+
+local selectedType = "Unique Pet"
+local inputRebirth = 0
+
+AuraTab:AddLabel("--- Muscle King Rock Glitcher ---")
+
+local typeSelect = AuraTab:AddDropdown("Select Type", function(val)
+    selectedType = val
+end)
+
+typeSelect:Add("Unique Pet")
+typeSelect:Add("Epic Pet")
+typeSelect:Add("Advanced Pet")
+typeSelect:Add("Rare Pet")
+typeSelect:Add("Basic Pet")
+typeSelect:Add("Unique Aura")
+
+AuraTab:AddLabel("--------------------")
+
+local resLvl = AuraTab:AddLabel("Required Level: -")
+local resXp = AuraTab:AddLabel("Required XP: -")
+
+AuraTab:AddTextBox("Enter Your Rebirths", function(val)
+    local n = tonumber(val)
+    if n then inputRebirth = n end
+end, {placeholder = "Rebirth gir (Örn: 5480)"})
+
+AuraTab:AddButton("Calculate PERFECT Stats", function()
+    if inputRebirth == 0 then return end
+
+    local finalLvl, finalXp
+    
+    if rockSweetSpots[inputRebirth] then
+        finalLvl = rockSweetSpots[inputRebirth].lvl
+        finalXp = rockSweetSpots[inputRebirth].xp
+        
+        if inputRebirth == 580 then
+            resLvl.Text = "Required Level: 0 (DIREKT VUR!)"
+            resXp.Text = "Required XP: 0 (GLITCH HAZIR)"
+            library:Notification("BUG READY", "580 RB: Sadece Rock'a vur!", "Done")
+            return
+        end
+    else
+        local set = raritySettings[selectedType] or raritySettings["Unique Pet"]
+        finalXp = math.floor(inputRebirth * set.mult)
+        finalLvl = set.baseLvl
+        
+        if finalXp >= 1000 then
+            finalLvl = finalLvl + math.floor(finalXp / 1000)
+            finalXp = finalXp % 1000
+        end
+    end
+
+    resLvl.Text = "Required Level: " .. finalLvl
+    resXp.Text = "Required XP: " .. finalXp
+    
+    library:Notification("HESAPLANDI", "Level: " .. finalLvl .. " | XP: " .. finalXp, "Done")
+end)
+
+AuraTab:AddLabel("--------------------")
+AuraTab:AddLabel("Veriler Muscle King Rock'a göredir.")
