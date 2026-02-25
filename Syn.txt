@@ -7,7 +7,7 @@ local leaderstats = player:WaitForChild("leaderstats")
 local rebirthsStat = leaderstats:WaitForChild("Rebirths")
 local rEvents = ReplicatedStorage:WaitForChild("rEvents")
 
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SynioxStudios/ByYusufGui-Syniox/refs/heads/main/SynioxGui.txt", true))()
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SynioxStudios/Syn-Paid-Ui/refs/heads/main/SynioxGui.txt", true))()
 local displayName = player.DisplayName
 
 local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. displayName, {
