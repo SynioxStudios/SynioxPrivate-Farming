@@ -23,7 +23,7 @@ local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. di
         Color3.fromRGB(0, 0, 0)
     }, 
     background_transparency = 0.1, 
-    main_color = Color3.fromRGB(30, 0, 200),
+    main_color = Color3.fromRGB(104, 34, 139),
     min_size = Vector2.new(450, 350), 
     can_resize = true 
 })
