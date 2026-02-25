@@ -1317,42 +1317,37 @@ local SelectPlayerName = ""
 
 local PlayerDrop = LookDura:AddDropdown("Select Player", function(Value)
     SelectPlayerName = Value:match("| (.+)")
+    previousValues = {}
 end)
 
-local function RefreshList()
-    pcall(function()
-        PlayerDrop:Clear()
-    end)
-    for _, v in pairs(game.Players:GetPlayers()) do
-        PlayerDrop:Add(v.DisplayName .. " | " .. v.Name)
-    end
+local Playerslist = {}
+for _, Plr in pairs(game:GetService("Players"):GetPlayers()) do
+    local displayName = Plr.DisplayName .. " | " .. Plr.Name
+    table.insert(Playerslist, displayName)
 end
-
-RefreshList()
-LookDura:AddButton("Refresh Player List", RefreshList)
-
-game.Players.PlayerAdded:Connect(RefreshList)
-game.Players.PlayerRemoving:Connect(RefreshList)
+for _, AddPlr in ipairs(Playerslist) do
+    PlayerDrop:Add(AddPlr)
+end
 
 local function FormatNumberWithCommas(number)
     local formatted = tostring(number):reverse():gsub("(%d%d%d)", "%1,"):reverse()
-    return formatted:gsub("^ pulp", ""):reverse():gsub("^,", "")
+    return formatted:gsub("^,", "")
 end
 
 local function FormatAbbreviated(number)
     local abbreviations = {"", "K", "M", "B", "T", "Qa", "Qi"}
     local abbreviationIndex = 1
-    local num = tonumber(number) or 0
-    while num >= 1000 and abbreviationIndex < #abbreviations do
-        num = num / 1000
+    while number >= 1000 and abbreviationIndex < #abbreviations do
+        number = number / 1000
         abbreviationIndex = abbreviationIndex + 1
     end
-    return string.format("%.2f", num) .. abbreviations[abbreviationIndex]
+    return string.format("%.2f", number) .. abbreviations[abbreviationIndex]
 end
 
 local function FormatDisplay(value)
-    local val = tonumber(value) or 0
-    return "[ " .. FormatNumberWithCommas(val) .. " | " .. FormatAbbreviated(val) .. " ]"
+    local normal = FormatNumberWithCommas(value)
+    local abbreviated = FormatAbbreviated(value)
+    return "[ " .. normal .. " | " .. abbreviated .. " ]"
 end
 
 local Update = LookDura:AddLabel("💪 Strength: -")
@@ -1369,12 +1364,6 @@ local MyDamageLabel = LookDura:AddLabel("Your Damage: 0")
 local FinalHTKLabel = LookDura:AddLabel("Hits To Kill: 0")
 LookDura:AddLabel("------------------------------")
 
-local PetTitle = LookDura:AddLabel("--- 🐾 Equipped Pets ---")
-local PetLabels = {}
-for i = 1, 8 do
-    PetLabels[i] = LookDura:AddLabel("Pet " .. i .. ": Empty")
-end
-
 task.spawn(function()
     while task.wait(0.5) do
         if SelectPlayerName ~= "" then
@@ -1385,6 +1374,8 @@ task.spawn(function()
                 if player:FindFirstChild("Gems") then Update1.Text = "💎 Gems: " .. FormatDisplay(player.Gems.Value) end
                 if player:FindFirstChild("Agility") then Update3.Text = "⚡ Agility: " .. FormatDisplay(player.Agility.Value) end
                 if player:FindFirstChild("Durability") then Update4.Text = "🛡️ Durability: " .. FormatDisplay(player.Durability.Value) end
+                if player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Kills") then Update5.Text = "💀 Kills: " .. FormatDisplay(player.leaderstats.Kills.Value) end
+                if player:FindFirstChild("currentMap") then Update9.Text = "📍 Current Map: " .. tostring(player.currentMap.Value) end
                 
                 local leaderstats = player:FindFirstChild("leaderstats")
                 if leaderstats then
@@ -1400,24 +1391,10 @@ task.spawn(function()
                     EnemyHealthLabel.Text = "Target Health: [ " .. FormatNumberWithCommas(currentHP) .. " / " .. FormatNumberWithCommas(maxHP) .. " ]"
                     MyDamageLabel.Text = "Your Damage: " .. FormatAbbreviated(myStr)
                     local htkCalc = math.ceil(currentHP / myStr)
-                    FinalHTKLabel.Text = "Hits To Kill: " .. (currentHP <= 0 and "DEAD" or FormatNumberWithCommas(htkCalc))
-                end
-
-                for i = 1, 8 do PetLabels[i].Text = "Pet " .. i .. ": Empty" end
-
-                local pInv = player:FindFirstChild("petInventory") or player:FindFirstChild("petFolder")
-                if pInv then
-                    local count = 1
-                    for _, p in pairs(pInv:GetChildren()) do
-                        if p:FindFirstChild("equipped") and p.equipped.Value == true and count <= 8 then
-                            local name = p.Name
-                            local lvl = p:FindFirstChild("level") and p.level.Value or 1
-                            local sM = p:FindFirstChild("strengthMulti") or p:FindFirstChild("StrengthMultiplier")
-                            local multVal = sM and sM.Value or 0
-                            
-                            PetLabels[count].Text = "🐾 " .. name .. " (Lvl " .. lvl .. ") [x" .. multVal .. " Strength]"
-                            count = count + 1
-                        end
+                    if currentHP <= 0 then
+                        FinalHTKLabel.Text = "Hits To Kill: DEAD"
+                    else
+                        FinalHTKLabel.Text = "Hits To Kill: " .. FormatNumberWithCommas(htkCalc)
                     end
                 end
             end
