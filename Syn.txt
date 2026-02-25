@@ -11,9 +11,21 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Synio
 local displayName = player.DisplayName
 
 local window = library:AddWindow("Syniox Paid | Muscle Legends || HELLO - ".. displayName, {
-title_bar = {Color3.fromRGB(60, 60, 60), Color3.fromRGB(30, 30, 30), Color3.fromRGB(10, 10, 10)}, 
-background = {Color3.fromRGB(15, 15, 15), Color3.fromRGB(18, 18, 18), Color3.fromRGB(22, 22, 22)}, 
-main_color = Color3.fromRGB(200, 200, 200), -- Metalik gri
+    title_bar = {
+        Color3.fromRGB(255, 170, 0), -- Parlak Altın Turuncusu
+        Color3.fromRGB(100, 60, 0),  -- Koyu Kehribar
+        Color3.fromRGB(20, 15, 10)   -- Derin Kahve-Siyah
+    }, 
+    title_bar_transparency = 0.1, 
+    background = {
+        Color3.fromRGB(12, 12, 12),  -- Saf Obsidyen Siyahı
+        Color3.fromRGB(18, 18, 18),  -- Koyu Füme
+        Color3.fromRGB(25, 25, 25)   -- Hafif Gri Geçiş
+    }, 
+    background_transparency = 0.1, 
+    main_color = Color3.fromRGB(255, 190, 50), -- Altın Sarısı Detaylar
+    min_size = Vector2.new(450, 350), 
+    can_resize = true 
 })
 
 local RebTab = window:AddTab("Fast Rebirth")
