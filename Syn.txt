@@ -1404,20 +1404,18 @@ task.spawn(function()
     end
 end)
 
-local SpyFolder = LookDura:AddFolder("Spy Stats")
+local SpyFolder = LookDura:AddFolder("Spy Stats V2")
 
 local PlayerDrop = SpyFolder:AddDropdown("Select Player", function(Value)
     SelectPlayerName = Value:match("| (.+)")
     strengthHistory = {}
     durabilityHistory = {}
-    paceHistoryHour = {}
     startTime = tick()
 end)
 
 local Playerslist = {}
 for _, Plr in pairs(game:GetService("Players"):GetPlayers()) do
-    local displayName = Plr.DisplayName .. " | " .. Plr.Name
-    table.insert(Playerslist, displayName)
+    table.insert(Playerslist, Plr.DisplayName .. " | " .. Plr.Name)
 end
 for _, AddPlr in ipairs(Playerslist) do
     PlayerDrop:Add(AddPlr)
@@ -1440,21 +1438,20 @@ local TargetTimeLabel = SpyFolder:AddLabel("⏱️ Stalk Time: 0s")
 local strengthHistory = {}
 local durabilityHistory = {}
 local startTime = tick()
-local calculationInterval = 10
+local calculationInterval = 60
 
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(1) do
         if SelectPlayerName ~= "" then
             local player = game.Players:FindFirstChild(SelectPlayerName)
             if player and player.Parent then
                 local leaderstats = player:FindFirstChild("leaderstats")
-                
                 local currentStr = (leaderstats and leaderstats:FindFirstChild("Strength") and leaderstats.Strength.Value) or 0
                 local currentDura = (player:FindFirstChild("Durability") and player.Durability.Value) or 0
                 local currentReb = (leaderstats and leaderstats:FindFirstChild("Rebirths") and leaderstats.Rebirths.Value) or 0
-
                 local currentTime = tick()
                 local elapsed = currentTime - startTime
+
                 TargetTimeLabel.Text = "⏱️ Stalk Time: " .. math.floor(elapsed) .. "s"
 
                 table.insert(strengthHistory, {time = currentTime, value = currentStr})
@@ -1469,17 +1466,23 @@ task.spawn(function()
 
                 if #strengthHistory >= 2 then
                     local sDelta = strengthHistory[#strengthHistory].value - strengthHistory[1].value
-                    local sPace = (sDelta / (strengthHistory[#strengthHistory].time - strengthHistory[1].time)) * 3600
-                    StrengthPaceLabel.Text = "🚀 Str/Hour: " .. formatNumber(sPace)
+                    local timeDiff = strengthHistory[#strengthHistory].time - strengthHistory[1].time
+                    if sDelta > 0 and timeDiff > 0 then
+                        local sPace = (sDelta / timeDiff) * 3600
+                        StrengthPaceLabel.Text = "🚀 Str/Hour: " .. formatNumber(sPace)
+                    end
                 end
 
                 if #durabilityHistory >= 2 then
                     local dDelta = durabilityHistory[#durabilityHistory].value - durabilityHistory[1].value
-                    local dPace = (dDelta / (durabilityHistory[#durabilityHistory].time - durabilityHistory[1].time)) * 3600
-                    DurabilityPaceLabel.Text = "🛡️ Dura/Hour: " .. formatNumber(dPace)
+                    local timeDiff = durabilityHistory[#durabilityHistory].time - durabilityHistory[1].time
+                    if dDelta > 0 and timeDiff > 0 then
+                        local dPace = (dDelta / timeDiff) * 3600
+                        DurabilityPaceLabel.Text = "🛡️ Dura/Hour: " .. formatNumber(dPace)
+                    end
                 end
 
-                if elapsed > 5 and currentReb > 0 then
+                if elapsed > 10 and currentReb > 0 then
                     local rPaceDay = (currentReb / elapsed) * 86400
                     RebirthPaceLabel.Text = "🔄 Reb/Day: " .. formatNumber(rPaceDay)
                 end
