@@ -1404,87 +1404,76 @@ task.spawn(function()
     end
 end)
 
-local SpyFolder = LookDura:AddFolder("Spy Stats V2")
+local SpyFolder = LookDura:AddFolder("Spy Stats")
+local SelectPlayerName = ""
+
+local statsHistory = {}
+local initialStats = {}
 
 local PlayerDrop = SpyFolder:AddDropdown("Select Player", function(Value)
     SelectPlayerName = Value:match("| (.+)")
-    strengthHistory = {}
-    durabilityHistory = {}
-    startTime = tick()
+    statsHistory = {}
+    initialStats = {}
 end)
 
-local Playerslist = {}
 for _, Plr in pairs(game:GetService("Players"):GetPlayers()) do
-    table.insert(Playerslist, Plr.DisplayName .. " | " .. Plr.Name)
-end
-for _, AddPlr in ipairs(Playerslist) do
-    PlayerDrop:Add(AddPlr)
+    PlayerDrop:Add(Plr.DisplayName .. " | " .. Plr.Name)
 end
 
-local function formatNumber(num)
-    if num >= 1e15 then return string.format("%.2fQa", num/1e15) end
-    if num >= 1e12 then return string.format("%.2fT", num/1e12) end
-    if num >= 1e9 then return string.format("%.2fB", num/1e9) end
-    if num >= 1e6 then return string.format("%.2fM", num/1e6) end
-    if num >= 1e3 then return string.format("%.2fK", num/1e3) end
-    return string.format("%.2f", num)
+game:GetService("Players").PlayerAdded:Connect(function(Plr)
+    PlayerDrop:Add(Plr.DisplayName .. " | " .. Plr.Name)
+end)
+
+local function FormatAbbreviated(number)
+    if number >= 1e15 then return string.format("%.2fQa", number/1e15) end
+    if number >= 1e12 then return string.format("%.2fT", number/1e12) end
+    if number >= 1e9 then return string.format("%.2fB", number/1e9) end
+    if number >= 1e6 then return string.format("%.2fM", number/1e6) end
+    if number >= 1e3 then return string.format("%.2fK", number/1e3) end
+    return string.format("%.2f", number)
 end
 
-local StrengthPaceLabel = SpyFolder:AddLabel("🚀 Str/Hour: Calculating...")
-local DurabilityPaceLabel = SpyFolder:AddLabel("🛡️ Dura/Hour: Calculating...")
-local RebirthPaceLabel = SpyFolder:AddLabel("🔄 Reb/Day: Calculating...")
-local TargetTimeLabel = SpyFolder:AddLabel("⏱️ Stalk Time: 0s")
+local function GetStatPace(playerName, currentValue)
+    if not statsHistory[playerName] then statsHistory[playerName] = {} end
+    local history = statsHistory[playerName]
+    table.insert(history, {time = tick(), value = currentValue})
+    while #history > 0 and tick() - history[1].time > 10 do
+        table.remove(history, 1)
+    end
+    if #history >= 2 then
+        local deltaValue = history[#history].value - history[1].value
+        local deltaTime = history[#history].time - history[1].time
+        return deltaValue / deltaTime
+    end
+    return 0
+end
 
-local strengthHistory = {}
-local durabilityHistory = {}
-local startTime = tick()
-local calculationInterval = 60
+local UpdateStr = SpyFolder:AddLabel("💪 Strength: -")
+local UpdateGained = SpyFolder:AddLabel("📈 Gained: -")
+local UpdatePace = SpyFolder:AddLabel("⏱️ Hour: - | Day: -")
+local UpdateWeek = SpyFolder:AddLabel("🗓️ Weekly: -")
 
 task.spawn(function()
     while task.wait(1) do
         if SelectPlayerName ~= "" then
             local player = game.Players:FindFirstChild(SelectPlayerName)
-            if player and player.Parent then
-                local leaderstats = player:FindFirstChild("leaderstats")
-                local currentStr = (leaderstats and leaderstats:FindFirstChild("Strength") and leaderstats.Strength.Value) or 0
-                local currentDura = (player:FindFirstChild("Durability") and player.Durability.Value) or 0
-                local currentReb = (leaderstats and leaderstats:FindFirstChild("Rebirths") and leaderstats.Rebirths.Value) or 0
-                local currentTime = tick()
-                local elapsed = currentTime - startTime
+            if player and player:FindFirstChild("leaderstats") then
+                local strStat = player.leaderstats:FindFirstChild("Strength")
+                if strStat then
+                    if not initialStats[player.Name] then initialStats[player.Name] = strStat.Value end
+                    
+                    local currentStr = strStat.Value
+                    local pacePerSecond = GetStatPace(player.Name, currentStr)
+                    local totalGained = currentStr - initialStats[player.Name]
+                    
+                    local perHour = pacePerSecond * 3600
+                    local perDay = pacePerSecond * 86400
+                    local perWeek = pacePerSecond * 604800
 
-                TargetTimeLabel.Text = "⏱️ Stalk Time: " .. math.floor(elapsed) .. "s"
-
-                table.insert(strengthHistory, {time = currentTime, value = currentStr})
-                table.insert(durabilityHistory, {time = currentTime, value = currentDura})
-
-                while #strengthHistory > 0 and currentTime - strengthHistory[1].time > calculationInterval do
-                    table.remove(strengthHistory, 1)
-                end
-                while #durabilityHistory > 0 and currentTime - durabilityHistory[1].time > calculationInterval do
-                    table.remove(durabilityHistory, 1)
-                end
-
-                if #strengthHistory >= 2 then
-                    local sDelta = strengthHistory[#strengthHistory].value - strengthHistory[1].value
-                    local timeDiff = strengthHistory[#strengthHistory].time - strengthHistory[1].time
-                    if sDelta > 0 and timeDiff > 0 then
-                        local sPace = (sDelta / timeDiff) * 3600
-                        StrengthPaceLabel.Text = "🚀 Str/Hour: " .. formatNumber(sPace)
-                    end
-                end
-
-                if #durabilityHistory >= 2 then
-                    local dDelta = durabilityHistory[#durabilityHistory].value - durabilityHistory[1].value
-                    local timeDiff = durabilityHistory[#durabilityHistory].time - durabilityHistory[1].time
-                    if dDelta > 0 and timeDiff > 0 then
-                        local dPace = (dDelta / timeDiff) * 3600
-                        DurabilityPaceLabel.Text = "🛡️ Dura/Hour: " .. formatNumber(dPace)
-                    end
-                end
-
-                if elapsed > 10 and currentReb > 0 then
-                    local rPaceDay = (currentReb / elapsed) * 86400
-                    RebirthPaceLabel.Text = "🔄 Reb/Day: " .. formatNumber(rPaceDay)
+                    UpdateStr.Text = "💪 Strength: " .. FormatAbbreviated(currentStr) .. " (+" .. FormatAbbreviated(pacePerSecond) .. "/s)"
+                    UpdateGained.Text = "📈 Gained: " .. FormatAbbreviated(totalGained)
+                    UpdatePace.Text = "⏱️ Hr: " .. FormatAbbreviated(perHour) .. " | Day: " .. FormatAbbreviated(perDay)
+                    UpdateWeek.Text = "🗓️ Weekly: " .. FormatAbbreviated(perWeek)
                 end
             end
         end
