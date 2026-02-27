@@ -1491,6 +1491,10 @@ task.spawn(function()
     end
 end)
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
 local Gift = window:AddTab("Gift")
 
 Gift:AddLabel("🥚 Gifting Protein egg:").TextSize = 22
