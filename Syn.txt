@@ -1321,16 +1321,13 @@ local PlayerDrop = StatsFolder:AddDropdown("Select Player", function(Value)
     SelectPlayerName = Value:match("| (.+)")
 end)
 
-local function UpdatePlayerList()
-    PlayerDrop:Clear()
-    for _, Plr in pairs(game:GetService("Players"):GetPlayers()) do
-        PlayerDrop:Add(Plr.DisplayName .. " | " .. Plr.Name)
-    end
+for _, Plr in pairs(game:GetService("Players"):GetPlayers()) do
+    PlayerDrop:Add(Plr.DisplayName .. " | " .. Plr.Name)
 end
-UpdatePlayerList()
 
-game:GetService("Players").PlayerAdded:Connect(UpdatePlayerList)
-game:GetService("Players").PlayerRemoving:Connect(UpdatePlayerList)
+game:GetService("Players").PlayerAdded:Connect(function(Plr)
+    PlayerDrop:Add(Plr.DisplayName .. " | " .. Plr.Name)
+end)
 
 local function FormatNumberWithCommas(number)
     local formatted = tostring(number):reverse():gsub("(%d%d%d)", "%1,"):reverse()
@@ -1395,8 +1392,8 @@ task.spawn(function()
                 local equippedPets = {}
                 local petFolder = player:FindFirstChild("petFolder")
                 if petFolder then
-                    for _, petFolderInstance in pairs(petFolder:GetChildren()) do
-                        for _, pet in pairs(petFolderInstance:GetChildren()) do
+                    for _, folder in pairs(petFolder:GetChildren()) do
+                        for _, pet in pairs(folder:GetChildren()) do
                             if pet:FindFirstChild("equipped") and pet.equipped.Value == true then
                                 table.insert(equippedPets, pet.Name)
                             end
