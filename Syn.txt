@@ -1082,59 +1082,170 @@ end)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Killer = window:AddTab("Kill")
+
 local playerWhitelist = {}
+local targetPlayerNames = {}
 
-local whitelistLabel = Killer:AddLabel("Whitelisted: None")
+Killer:AddLabel("--- Karma Farm ---")
 
-local function updateWhitelistDisplay()
-    local list = ""
-    for name, _ in pairs(playerWhitelist) do
-        list = list .. name .. ", "
-    end
-    if list == "" then
-        whitelistLabel.Text = "Whitelisted: None"
-    else
-        whitelistLabel.Text = "Whitelisted: " .. list:sub(1, #list - 2)
-    end
+Killer:AddSwitch("😇 Auto Good Karma", function(bool)
+    _G.GoodKarma = bool
+    task.spawn(function()
+        while _G.GoodKarma do
+            local char = LocalPlayer.Character
+            local rHand = char and char:FindFirstChild("RightHand")
+            if rHand then
+                for _, target in ipairs(Players:GetPlayers()) do
+                    if target ~= LocalPlayer then
+                        local evil = target:FindFirstChild("evilKarma")
+                        local good = target:FindFirstChild("goodKarma")
+                        if evil and good and evil.Value > good.Value then
+                            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                firetouchinterest(rHand, root, 1)
+                                firetouchinterest(rHand, root, 0)
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+Killer:AddSwitch("😈 Auto Bad Karma", function(bool)
+    _G.BadKarma = bool
+    task.spawn(function()
+        while _G.BadKarma do
+            local char = LocalPlayer.Character
+            local rHand = char and char:FindFirstChild("RightHand")
+            if rHand then
+                for _, target in ipairs(Players:GetPlayers()) do
+                    if target ~= LocalPlayer then
+                        local evil = target:FindFirstChild("evilKarma")
+                        local good = target:FindFirstChild("goodKarma")
+                        if evil and good and good.Value > evil.Value then
+                            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                firetouchinterest(rHand, root, 1)
+                                firetouchinterest(rHand, root, 0)
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+Killer:AddLabel("--------------------")
+Killer:AddLabel("--- Whitelist System ---")
+
+local whitelistShow = Killer:AddLabel("Whitelisted: None")
+
+local function updateWhitelistLabel()
+    local str = ""
+    for name, _ in pairs(playerWhitelist) do str = str .. name .. ", " end
+    whitelistShow.Text = str ~= "" and "Whitelisted: " .. str:sub(1, #str - 2) or "Whitelisted: None"
 end
 
 local whitelistDropdown = Killer:AddDropdown("🫂 Whitelist Player", function(name)
-    if name then
-        playerWhitelist[name] = true
-        updateWhitelistDisplay()
-    end
-end)
-
-local function addToWhitelistDropdown(targetPlayer)
-    if targetPlayer ~= LocalPlayer then
-        whitelistDropdown:Add(targetPlayer.Name)
-    end
-end
-
-for _, p in ipairs(Players:GetPlayers()) do
-    addToWhitelistDropdown(p)
-end
-
-Players.PlayerAdded:Connect(function(newPlayer)
-    addToWhitelistDropdown(newPlayer)
+    if name then playerWhitelist[name] = true updateWhitelistLabel() end
 end)
 
 Killer:AddButton("🧹 Clear Whitelist", function()
-    playerWhitelist = {}
-    updateWhitelistDisplay()
+    playerWhitelist = {} updateWhitelistLabel()
 end)
 
 Killer:AddSwitch("🛡️ Auto Whitelist Friends", function(state)
     _G.WhFriends = state
     if state then
         for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and LocalPlayer:IsFriendsWith(p.UserId) then
-                playerWhitelist[p.Name] = true
-            end
+            if p ~= LocalPlayer and LocalPlayer:IsFriendsWith(p.UserId) then playerWhitelist[p.Name] = true end
         end
-        updateWhitelistDisplay()
+        updateWhitelistLabel()
     end
 end)
+
+Killer:AddSwitch("⚔️ Auto Kill (Ignore Whitelist)", function(bool)
+    _G.AutoKill = bool
+    task.spawn(function()
+        while _G.AutoKill do
+            local char = LocalPlayer.Character
+            local rHand = char and char:FindFirstChild("RightHand")
+            if rHand then
+                for _, target in ipairs(Players:GetPlayers()) do
+                    if target ~= LocalPlayer and not playerWhitelist[target.Name] then
+                        local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            pcall(function()
+                                firetouchinterest(rHand, root, 1)
+                                firetouchinterest(rHand, root, 0)
+                            end)
+                        end
+                    end
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end)
+
+Killer:AddLabel("--------------------")
+Killer:AddLabel("--- Blacklist (Target) ---")
+
+local blacklistShow = Killer:AddLabel("Targets: None")
+
+local function updateBlacklistLabel()
+    local str = ""
+    for _, name in ipairs(targetPlayerNames) do str = str .. name .. ", " end
+    blacklistShow.Text = str ~= "" and "Targets: " .. str:sub(1, #str - 2) or "Targets: None"
+end
+
+local targetDropdown = Killer:AddDropdown("🎭 Select Target", function(name)
+    if name and not table.find(targetPlayerNames, name) then 
+        table.insert(targetPlayerNames, name) 
+        updateBlacklistLabel()
+    end
+end)
+
+Killer:AddButton("🚫 Clear Blacklist", function()
+    targetPlayerNames = {} updateBlacklistLabel()
+end)
+
+Killer:AddSwitch("🎯 Start Kill Target", function(state)
+    _G.KillTarget = state
+    task.spawn(function()
+        while _G.KillTarget do
+            local char = LocalPlayer.Character
+            local rHand = char and char:FindFirstChild("RightHand")
+            if rHand then
+                for _, name in ipairs(targetPlayerNames) do
+                    local t = Players:FindFirstChild(name)
+                    if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+                        pcall(function()
+                            firetouchinterest(rHand, t.Character.HumanoidRootPart, 1)
+                            firetouchinterest(rHand, t.Character.HumanoidRootPart, 0)
+                        end)
+                    end
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end)
+
+local function updateAllDropdowns(p)
+    if p ~= LocalPlayer then
+        whitelistDropdown:Add(p.Name)
+        targetDropdown:Add(p.Name)
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do updateAllDropdowns(p) end
+Players.PlayerAdded:Connect(updateAllDropdowns)
 
 local LookDura = window:AddTab("Stats")
 local SelectPlayerName = ""
