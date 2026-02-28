@@ -1085,7 +1085,65 @@ local Killer = window:AddTab("Kill")
 
 local playerWhitelist = {}
 local targetPlayerNames = {}
+local selectedFollowTarget = nil
+_G.FollowToTarget = false
 
+Killer:AddLabel("--- Misc ---")
+
+Killer:AddSwitch("👀 View Player", function(bool)
+    spying = bool
+    if not spying then
+        local cam = workspace.CurrentCamera
+        cam.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer
+        return
+    end
+    task.spawn(function()
+        while spying do
+            local target = Players:FindFirstChild(targetPlayerName)
+            if target and target ~= LocalPlayer then
+                local humanoid = target.Character and target.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    workspace.CurrentCamera.CameraSubject = humanoid
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end)
+
+local followDropdown = Killer:AddDropdown("👤 Select Follow Target", function(name)
+    selectedFollowTarget = name
+    _G.FollowToTarget = true
+    
+    task.spawn(function()
+        while _G.FollowToTarget and selectedFollowTarget == name do
+            local t = game.Players:FindFirstChild(selectedFollowTarget)
+            local myChar = LocalPlayer.Character
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            
+            if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and myHRP then
+                myHRP.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2.5)
+            end
+            task.wait()
+        end
+    end)
+end)
+
+Killer:AddButton("⛔ Stop Follow", function()
+    _G.FollowToTarget = false
+    selectedFollowTarget = nil
+end)
+
+local function updateFollowDropdown(p)
+    if p ~= LocalPlayer then
+        followDropdown:Add(p.Name)
+    end
+end
+
+for _, p in ipairs(game.Players:GetPlayers()) do updateFollowDropdown(p) end
+game.Players.PlayerAdded:Connect(updateFollowDropdown)
+
+Killer:AddLabel("--------------------")
 Killer:AddLabel("--- Karma Farm ---")
 
 Killer:AddSwitch("😇 Auto Good Karma", function(bool)
