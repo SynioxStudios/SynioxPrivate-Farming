@@ -416,6 +416,90 @@ local sizeSwitch = StrTab:AddSwitch("Auto Size 2", function(bool)
 end, "Size 2")
 
 local Main = window:AddTab("Main")
+local repsPerTick = 12
+
+Main:AddTextBox("Rep Speed", function(value)
+    local num = tonumber(value)
+    if num and num > 0 then 
+        repsPerTick = math.floor(num) 
+    end
+end, {placeholder = "Rep Amount (Default: 12)"})
+
+_G.repToggle = false
+Main:AddSwitch("💪 Fast Auto Farm (Equip Any tool)", function(state)
+    _G.repToggle = state
+    task.spawn(function()
+        while _G.repToggle do
+            local event = game:GetService("Players").LocalPlayer:FindFirstChild("muscleEvent")
+            if event then
+                for i = 1, repsPerTick do
+                    if not _G.repToggle then break end
+                    event:FireServer("rep")
+                end
+            end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+local function manageTool(toolName)
+    task.spawn(function()
+        while _G[toolName.."On"] do
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            
+            if character then
+                local tool = character:FindFirstChild(toolName) or player.Backpack:FindFirstChild(toolName)
+                
+                if tool then
+                    if tool.Parent ~= character then
+                        tool.Parent = character
+                    end
+                    
+                    local event = player:FindFirstChild("muscleEvent")
+                    if event then
+                        for i = 1, repsPerTick do
+                            if not _G[toolName.."On"] then break end
+                            event:FireServer("rep")
+                        end
+                    else
+                        tool:Activate()
+                    end
+                end
+            end
+            task.wait(0.01)
+        end
+
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if character then
+            local tool = character:FindFirstChild(toolName)
+            if tool then
+                tool.Parent = player.Backpack
+            end
+        end
+    end)
+end
+
+Main:AddSwitch("🏋️ Weight", function(bool)
+    _G.WeightOn = bool
+    if bool then manageTool("Weight") end
+end)
+
+Main:AddSwitch("💪 Pushups", function(bool)
+    _G.PushupsOn = bool
+    if bool then manageTool("Pushups") end
+end)
+
+Main:AddSwitch("🤸 Handstands", function(bool)
+    _G.HandstandsOn = bool
+    if bool then manageTool("Handstands") end
+end)
+
+Main:AddSwitch("🧘 Situps", function(bool)
+    _G.SitupsOn = bool
+    if bool then manageTool("Situps") end
+end)
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Player = game.Players.LocalPlayer
