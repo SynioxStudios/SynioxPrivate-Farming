@@ -1081,11 +1081,28 @@ end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Killer = window:AddTab("Kill V2")
+local Killer = window:AddTab("Kill")
 local playerWhitelist = {}
 
+local whitelistLabel = Killer:AddLabel("Whitelisted: None")
+
+local function updateWhitelistDisplay()
+    local list = ""
+    for name, _ in pairs(playerWhitelist) do
+        list = list .. name .. ", "
+    end
+    if list == "" then
+        whitelistLabel.Text = "Whitelisted: None"
+    else
+        whitelistLabel.Text = "Whitelisted: " .. list:sub(1, #list - 2)
+    end
+end
+
 local whitelistDropdown = Killer:AddDropdown("🫂 Whitelist Player", function(name)
-    playerWhitelist[name] = true
+    if name then
+        playerWhitelist[name] = true
+        updateWhitelistDisplay()
+    end
 end)
 
 local function addToWhitelistDropdown(targetPlayer)
@@ -1104,6 +1121,7 @@ end)
 
 Killer:AddButton("🧹 Clear Whitelist", function()
     playerWhitelist = {}
+    updateWhitelistDisplay()
 end)
 
 Killer:AddSwitch("🛡️ Auto Whitelist Friends", function(state)
@@ -1114,10 +1132,11 @@ Killer:AddSwitch("🛡️ Auto Whitelist Friends", function(state)
                 playerWhitelist[p.Name] = true
             end
         end
+        updateWhitelistDisplay()
     end
 end)
 
-local LookDura = window:AddTab("Stats V2")
+local LookDura = window:AddTab("Stats")
 local SelectPlayerName = ""
 
 local StatsFolder = LookDura:AddFolder(" 👤 Stats V2")
