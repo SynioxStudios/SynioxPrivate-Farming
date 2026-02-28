@@ -549,62 +549,89 @@ TreadmillFolder:AddButton("⛔ Stop Treadmill Farm", function()
     stopTreadmill()
 end)
 
-local toolFolder = Main:AddFolder("💨 OP Tools V2")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local toolFolder = AutoFarm:AddFolder(" 💨 OP Tools")
 
 local function manageToolCombo(toolName)
     task.spawn(function()
         while _G[toolName.."On"] do
-            local player = game.Players.LocalPlayer
-            local char = player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            local event = player:FindFirstChild("muscleEvent")
+            local character = LocalPlayer.Character
+            local hum = character and character:FindFirstChildOfClass("Humanoid")
             
-            if char and hum then
-                local tool = player.Backpack:FindFirstChild(toolName) or char:FindFirstChild(toolName)
-                local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+            if character and hum then
+                local punch = LocalPlayer.Backpack:FindFirstChild("Punch") or character:FindFirstChild("Punch")
+                local tool = LocalPlayer.Backpack:FindFirstChild(toolName) or character:FindFirstChild(toolName)
+
+                if punch then
+                    if punch.Parent ~= character then
+                        hum:EquipTool(punch)
+                    end
+                    if punch:FindFirstChild("attackTime") then 
+                        punch.attackTime.Value = 0 
+                    end
+                    punch:Activate()
+                end
 
                 if tool then
-                    if tool.Parent ~= char then tool.Parent = char end
+                    if tool.Parent ~= character then
+                        hum:EquipTool(tool)
+                    end
+                    
+                    local event = LocalPlayer:FindFirstChild("muscleEvent")
                     if event then 
                         event:FireServer("rep") 
                     end
                     tool:Activate()
                 end
-
-                if punch and event then
-                    event:FireServer("punch")
-                end
             end
             task.wait(0.01)
-        end
-        
-        local player = game.Players.LocalPlayer
-        if player.Character and player.Character:FindFirstChild(toolName) then
-            player.Character[toolName].Parent = player.Backpack
         end
     end)
 end
 
 toolFolder:AddLabel("Choose your desired rock from the Rock Location below")
 
+
 toolFolder:AddSwitch("🏋️ Weight + 🥊 Punch", function(bool)
     _G.WeightOn = bool
-    if bool then manageToolCombo("Weight") end
+    if bool then 
+        manageToolCombo("Weight") 
+    else
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:UnequipTools() end
+    end
 end)
 
 toolFolder:AddSwitch("💪 Pushups + 🥊 Punch", function(bool)
     _G.PushupsOn = bool
-    if bool then manageToolCombo("Pushups") end
+    if bool then 
+        manageToolCombo("Pushups") 
+    else
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:UnequipTools() end
+    end
 end)
 
-toolFolder:AddSwitch("🤸 Handstands + 🥊 Punch", function(bool)
-    _G.HandstandsOn = bool
-    if bool then manageToolCombo("Handstands") end
+toolFolder:AddSwitch("🤸 Handstand + 🥊 Punch", function(bool)
+    _G.HandstandOn = bool
+    if bool then 
+        manageToolCombo("Handstand") 
+    else
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:UnequipTools() end
+    end
 end)
 
 toolFolder:AddSwitch("🧘 Situps + 🥊 Punch", function(bool)
     _G.SitupsOn = bool
-    if bool then manageToolCombo("Situps") end
+    if bool then 
+        manageToolCombo("Situps") 
+    else
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:UnequipTools() end
+    end
 end)
 
 local function gettool()
