@@ -554,6 +554,8 @@ local LocalPlayer = Players.LocalPlayer
 
 local toolFolder = Main:AddFolder(" 💨 OP Tools")
 
+toolFolder:AddLabel("Choose your desired rock from the Rock Location below")
+
 local function manageToolCombo(toolName)
     task.spawn(function()
         while _G[toolName.."On"] do
@@ -591,47 +593,24 @@ local function manageToolCombo(toolName)
     end)
 end
 
-toolFolder:AddLabel("Choose your desired rock from the Rock Location below")
-
-
 toolFolder:AddSwitch("🏋️ Weight + 🥊 Punch", function(bool)
     _G.WeightOn = bool
-    if bool then 
-        manageToolCombo("Weight") 
-    else
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:UnequipTools() end
-    end
+    if bool then manageToolCombo("Weight") end
 end)
 
 toolFolder:AddSwitch("💪 Pushups + 🥊 Punch", function(bool)
     _G.PushupsOn = bool
-    if bool then 
-        manageToolCombo("Pushups") 
-    else
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:UnequipTools() end
-    end
+    if bool then manageToolCombo("Pushups") end
 end)
 
 toolFolder:AddSwitch("🤸 Handstand + 🥊 Punch", function(bool)
     _G.HandstandOn = bool
-    if bool then 
-        manageToolCombo("Handstand") 
-    else
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:UnequipTools() end
-    end
+    if bool then manageToolCombo("Handstand") end
 end)
 
 toolFolder:AddSwitch("🧘 Situps + 🥊 Punch", function(bool)
     _G.SitupsOn = bool
-    if bool then 
-        manageToolCombo("Situps") 
-    else
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:UnequipTools() end
-    end
+    if bool then manageToolCombo("Situps") end
 end)
 
 local function gettool()
