@@ -1031,6 +1031,73 @@ Main:AddSwitch("🔄 Auto Buy Selected", function(state)
     end
 end)
 
+AutoFarm:AddLabel("----------------------------")
+AutoFarm:AddLabel("👊 Auto Brawl")
+
+AutoFarm:AddSwitch("🏆 Auto Join Brawl", function(state)
+    autoBrawl = state
+    task.spawn(function()
+        while autoBrawl do
+            game:GetService("ReplicatedStorage").rEvents.brawlEvent:FireServer("joinBrawl")
+            task.wait(5)
+        end
+    end)
+end)
+
+AutoFarm:AddSwitch("🛡️ God Mode", function(state)
+    godModeToggle = state
+    manageParts(state)
+    if state then
+        task.spawn(function()
+            while godModeToggle do
+                game:GetService("ReplicatedStorage").rEvents.brawlEvent:FireServer("joinBrawl")
+                task.wait(0)
+            end
+        end)
+    end
+end)
+
+AutoFarm:AddSwitch("⚔️ Auto Win Brawl", function(state)
+    autoWinBrawl = state
+    if state then
+        task.spawn(function()
+            while autoWinBrawl do
+                local lp = game:GetService("Players").LocalPlayer
+                local char = lp.Character
+                if char then
+                    local punch = lp.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                    if punch then
+                        punch.Parent = char
+                        if punch:FindFirstChild("attackTime") then
+                            punch.attackTime.Value = 0
+                        end
+                        punch:Activate()
+                    end
+                    
+                    local rHand = char:FindFirstChild("RightHand")
+                    local lHand = char:FindFirstChild("LeftHand")
+                    if rHand and lHand then
+                        for _, target in ipairs(game:GetService("Players"):GetPlayers()) do
+                            if target ~= lp and target.Character then
+                                local root = target.Character:FindFirstChild("HumanoidRootPart")
+                                if root then
+                                    pcall(function()
+                                        firetouchinterest(rHand, root, 1)
+                                        firetouchinterest(lHand, root, 1)
+                                        firetouchinterest(rHand, root, 0)
+                                        firetouchinterest(lHand, root, 0)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end)
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Killer = window:AddTab("Kill")
@@ -1857,6 +1924,330 @@ task.spawn(function()
             end
         end
     end
+end)
+
+local pets = window:AddTab("Pets")
+pets:AddLabel("💰 Auto Buy")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local selectedPet = ""
+local petDropdown = pets:AddDropdown("🐢 Select Pet", function(text)
+    selectedPet = text
+end)
+
+petDropdown:Add("Neon Guardian")
+petDropdown:Add("Blue Birdie")
+petDropdown:Add("Blue Bunny")
+petDropdown:Add("Blue Firecaster")
+petDropdown:Add("Blue Pheonix")
+petDropdown:Add("Crimson Falcon")
+petDropdown:Add("Cybernetic Showdown Dragon")
+petDropdown:Add("Dark Golem")
+petDropdown:Add("Dark Legends Manticore")
+petDropdown:Add("Dark Vampy")
+petDropdown:Add("Darkstar Hunter")
+petDropdown:Add("Eternal Strike Leviathan")
+petDropdown:Add("Frostwave Legends Penguin")
+petDropdown:Add("Gold Warrior")
+petDropdown:Add("Golden Pheonix")
+petDropdown:Add("Golden Viking")
+petDropdown:Add("Green Butterfly")
+petDropdown:Add("Green Firecaster")
+petDropdown:Add("Infernal Dragon")
+petDropdown:Add("Lightning Strike Phantom")
+petDropdown:Add("Magic Butterfly")
+petDropdown:Add("Muscle Sensei")
+petDropdown:Add("Orange Hedgehog")
+petDropdown:Add("Orange Pegasus")
+petDropdown:Add("Phantom Genesis Dragon")
+petDropdown:Add("Purple Dragon")
+petDropdown:Add("Purple Falcon")
+petDropdown:Add("Red Dragon")
+petDropdown:Add("Red Firecaster")
+petDropdown:Add("Red Kitty")
+petDropdown:Add("Silver Dog")
+petDropdown:Add("Ultimate Supernova Pegasus")
+petDropdown:Add("Ultra Birdie")
+petDropdown:Add("White Pegasus")
+petDropdown:Add("White Pheonix")
+petDropdown:Add("Yellow Butterfly")
+
+pets:AddSwitch("Auto Open Pet", function(bool)
+    _G.AutoHatchPet = bool
+    if bool then
+        spawn(function()
+            while _G.AutoHatchPet and selectedPet ~= "" do
+                local petToOpen = ReplicatedStorage.cPetShopFolder:FindFirstChild(selectedPet)
+                if petToOpen then
+                    ReplicatedStorage.cPetShopRemote:InvokeServer(petToOpen)
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+local selectedAura = ""
+local auraDropdown = pets:AddDropdown("💫 Select Aura", function(text)
+    selectedAura = text
+end)
+
+auraDropdown:Add("Entropic Blast")
+auraDropdown:Add("Azure Tundra")
+auraDropdown:Add("Blue Aura")
+auraDropdown:Add("Dark Electro")
+auraDropdown:Add("Dark Lightning")
+auraDropdown:Add("Dark Storm")
+auraDropdown:Add("Electro")
+auraDropdown:Add("Enchanted Mirage")
+auraDropdown:Add("Astral Electro")
+auraDropdown:Add("Eternal Megastrike")
+auraDropdown:Add("Grand Supernova")
+auraDropdown:Add("Green Aura")
+auraDropdown:Add("Inferno")
+auraDropdown:Add("Lightning")
+auraDropdown:Add("Muscle King")
+auraDropdown:Add("Power Lightning")
+auraDropdown:Add("Purple Aura")
+auraDropdown:Add("Purple Nova")
+auraDropdown:Add("Red Aura")
+auraDropdown:Add("Supernova")
+auraDropdown:Add("Ultra Inferno")
+auraDropdown:Add("Ultra Mirage")
+auraDropdown:Add("Unstable Mirage")
+auraDropdown:Add("Yellow Aura")
+
+pets:AddSwitch("Auto Open Aura", function(bool)
+    _G.AutoHatchAura = bool
+    if bool then
+        spawn(function()
+            while _G.AutoHatchAura and selectedAura ~= "" do
+                local auraToOpen = ReplicatedStorage.cPetShopFolder:FindFirstChild(selectedAura)
+                if auraToOpen then
+                    ReplicatedStorage.cPetShopRemote:InvokeServer(auraToOpen)
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+pets:AddLabel("----------------------------")
+pets:AddLabel("✨ Auto Evolve Pet")
+
+local pets = pets
+local selectedEvolvePet = ""
+local autoEvolvePet = false
+
+local evolvePetDropdown = pets:AddDropdown("🐾 Select Pet to Evolve", function(text)
+    selectedEvolvePet = text
+end)
+
+evolvePetDropdown:Add("Blue Birdie (Basic)")
+evolvePetDropdown:Add("Orange Hedgehog (Basic)")
+evolvePetDropdown:Add("Red Kitty (Basic)")
+evolvePetDropdown:Add("Blue Bunny (Basic)")
+evolvePetDropdown:Add("Silver Dog (Basic)")
+evolvePetDropdown:Add("Dark Vampy (Advanced)")
+evolvePetDropdown:Add("Dark Golem (Advanced)")
+evolvePetDropdown:Add("Green Butterfly (Advanced)")
+evolvePetDropdown:Add("Yellow Butterfly (Advanced)")
+evolvePetDropdown:Add("Crimson Falcon (Rare)")
+evolvePetDropdown:Add("Purple Dragon (Rare)")
+evolvePetDropdown:Add("Orange Pegasus (Rare)")
+evolvePetDropdown:Add("Purple Falcon (Rare)")
+evolvePetDropdown:Add("Red Dragon (Rare)")
+evolvePetDropdown:Add("White Pegasus (Rare)")
+evolvePetDropdown:Add("Frostwave Legends Penguin (Rare)")
+evolvePetDropdown:Add("Phantom Genesis Dragon (Rare)")
+evolvePetDropdown:Add("Eternal Strike Leviathan (Rare)")
+evolvePetDropdown:Add("Blue Pheonix (Epic)")
+evolvePetDropdown:Add("Blue Firecaster (Epic)")
+evolvePetDropdown:Add("Golden Pheonix (Epic)")
+evolvePetDropdown:Add("Red Firecaster (Epic)")
+evolvePetDropdown:Add("Green Firecaster (Epic)")
+evolvePetDropdown:Add("White Pheonix (Epic)")
+evolvePetDropdown:Add("Dark Legends Manticore (Epic)")
+evolvePetDropdown:Add("Ultimate Supernova Pegasus (Epic)")
+evolvePetDropdown:Add("Lightning Strike Phantom (Epic)")
+evolvePetDropdown:Add("Golden Viking (Epic)")
+evolvePetDropdown:Add("Infernal Dragon (Unique)")
+evolvePetDropdown:Add("Ultra Birdie (Unique)")
+evolvePetDropdown:Add("Magic Butterfly (Unique)")
+evolvePetDropdown:Add("Aether Spirit Bunny (Unique)")
+evolvePetDropdown:Add("Cybernetic Showdown Dragon (Unique)")
+evolvePetDropdown:Add("Darkstar Hunter (Unique)")
+evolvePetDropdown:Add("Muscle Sensei (Unique)")
+evolvePetDropdown:Add("Neon Guardian (Unique)")
+evolvePetDropdown:Add("Blue Aura (Basic)")
+evolvePetDropdown:Add("Green Aura (Basic)")
+evolvePetDropdown:Add("Purple Aura (Basic)")
+evolvePetDropdown:Add("Red Aura (Basic)")
+evolvePetDropdown:Add("Yellow Aura (Basic)")
+evolvePetDropdown:Add("Ultra Inferno (Rare)")
+evolvePetDropdown:Add("Azure Tundra (Epic)")
+evolvePetDropdown:Add("Grand Supernova (Epic)")
+evolvePetDropdown:Add("Muscle King (Unique)")
+evolvePetDropdown:Add("Entropic Blast (Unique)")
+evolvePetDropdown:Add("Eternal Megastrike (Unique)")
+
+pets:AddSwitch("🎯 Auto Evolve Selected Pet", function(state)
+    autoEvolvePet = state
+    if state then
+        if selectedEvolvePet == "" then
+            return
+        end
+        local petName = selectedEvolvePet:match("^(.-)%s*%(")
+        if not petName then
+            petName = selectedEvolvePet
+        end
+        task.spawn(function()
+            local maxAttempts = 1000
+            while autoEvolvePet do
+                pcall(function()
+                    game:GetService("ReplicatedStorage").rEvents.petEvolveEvent:FireServer(
+                        "evolvePet",
+                        petName
+                    )
+                end)
+                task.wait(0.5)
+                if maxAttempts <= 0 then
+                    autoEvolvePet = false
+                    break
+                end
+                maxAttempts = maxAttempts - 1
+            end
+        end)
+    end
+end)
+
+pets:AddButton("⚡ Quick Evolve (1x)", function()
+    if selectedEvolvePet == "" then
+        return
+    end
+    local petName = selectedEvolvePet:match("^(.-)%s*%(")
+    if not petName then
+        petName = selectedEvolvePet
+    end
+    pcall(function()
+        game:GetService("ReplicatedStorage").rEvents.petEvolveEvent:FireServer(
+            "evolvePet",
+            petName
+        )
+    end)
+end)
+
+pets:AddButton("💥 Quick Evolve (10x)", function()
+    if selectedEvolvePet == "" then
+        return
+    end
+    local petName = selectedEvolvePet:match("^(.-)%s*%(")
+    if not petName then
+        petName = selectedEvolvePet
+    end
+    for i = 1, 10 do
+        pcall(function()
+            game:GetService("ReplicatedStorage").rEvents.petEvolveEvent:FireServer(
+                "evolvePet",
+                petName
+            )
+        end)
+        task.wait(0.1)
+    end
+end)
+
+pets:AddLabel("----------------------------")
+pets:AddLabel("💎 Trade System")
+
+local running = false
+local selectedTarget = nil
+local selectedPet = nil
+
+local playerDropdown = pets:AddDropdown("👤 Choose Player", function(name)
+    local username = name:match(" | (.+)") or name
+    selectedTarget = game:GetService("Players"):FindFirstChild(username)
+end)
+
+local function updatePlayerList(p)
+    if p ~= game:GetService("Players").LocalPlayer then
+        playerDropdown:Add(p.DisplayName .. " | " .. p.Name)
+    end
+end
+
+for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+    updatePlayerList(player)
+end
+
+game:GetService("Players").PlayerAdded:Connect(updatePlayerList)
+
+local petDropdown = pets:AddDropdown("🐈 Choose Pet", function(text) 
+    selectedPet = text 
+end)
+
+local petList = {
+    "Blue Birdie", "Orange Hedgehog", "Red Kitty", "Blue Bunny", "Silver Dog",
+    "Dark Vampy", "Dark Golem", "Green Butterfly", "Yellow Butterfly",
+    "Crimson Falcon", "Purple Dragon", "Orange Pegasus", "Purple Falcon", "Red Dragon",
+    "White Pegasus", "Frostwave Legends Penguin", "Phantom Genesis Dragon", "Eternal Strike Leviathan",
+    "Blue Pheonix", "Blue Firecaster", "Golden Pheonix", "Red Firecaster", "Green Firecaster",
+    "White Pheonix", "Dark Legends Manticore", "Ultimate Supernova Pegasus", "Lightning Strike Phantom", "Golden Viking",
+    "Infernal Dragon", "Ultra Birdie", "Magic Butterfly", "Aether Spirit Bunny",
+    "Cybernetic Showdown Dragon", "Darkstar Hunter", "Muscle Sensei", "Neon Guardian"
+}
+
+for _, name in ipairs(petList) do 
+    petDropdown:Add(name) 
+end
+
+pets:AddSwitch("📫 Auto Trade", function(state)
+    running = state
+    if not state then return end
+
+    task.spawn(function()
+        while running do
+            if selectedTarget and selectedPet then
+                local tradingEvent = game:GetService("ReplicatedStorage").rEvents.tradingEvent
+                local localPlayer = game:GetService("Players").LocalPlayer
+                local pf = localPlayer:FindFirstChild("petsFolder")
+
+                if pf then
+                    local folders = {
+                        pf:FindFirstChild("Basic"),
+                        pf:FindFirstChild("Advanced"),
+                        pf:FindFirstChild("Rare"),
+                        pf:FindFirstChild("Epic"),
+                        pf:FindFirstChild("Unique")
+                    }
+
+                    tradingEvent:FireServer("sendTradeRequest", selectedTarget)
+                    task.wait(1.3) 
+
+                    local offered = 0
+                    
+                    for _, folder in ipairs(folders) do
+                        if folder and running and offered < 6 then
+                            local petsToOffer = folder:GetChildren()
+                            for i = 1, #petsToOffer do
+                                local pet = petsToOffer[i]
+                                if not running or offered >= 6 then break end
+
+                                if pet.Name == selectedPet then
+                                    tradingEvent:FireServer("offerItem", pet)
+                                    offered = offered + 1
+                                    task.wait(0.1) 
+                                end
+                            end
+                        end
+                    end
+
+                    if running then
+                        tradingEvent:FireServer("acceptTrade")
+                    end
+                end
+            end
+            task.wait(0.8) 
+        end
+    end)
 end)
 
 local Players = game:GetService("Players")
