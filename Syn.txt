@@ -1178,19 +1178,18 @@ rebirths:AddSwitch("🔄 Auto Buy Selected", function(state)
     end
 end)
 
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local Killer = window:AddTab("Kill V2")
-
 local playerWhitelist = {}
 
 local whitelistDropdown = Killer:AddDropdown("🫂 Whitelist Player", function(name)
-    if name then
-        playerWhitelist[name] = true
-    end
+    playerWhitelist[name] = true
 end)
 
-local function addToWhitelistDropdown(player)
-    if player ~= LocalPlayer then
-        whitelistDropdown:Add(player.Name)
+local function addToWhitelistDropdown(targetPlayer)
+    if targetPlayer ~= LocalPlayer then
+        whitelistDropdown:Add(targetPlayer.Name)
     end
 end
 
@@ -1198,7 +1197,9 @@ for _, p in ipairs(Players:GetPlayers()) do
     addToWhitelistDropdown(p)
 end
 
-Players.PlayerAdded:Connect(addToWhitelistDropdown)
+Players.PlayerAdded:Connect(function(newPlayer)
+    addToWhitelistDropdown(newPlayer)
+end)
 
 Killer:AddButton("🧹 Clear Whitelist", function()
     playerWhitelist = {}
